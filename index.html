@@ -1,0 +1,2060 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Контроль сроков заявок</title>
+<style>
+/* =========================================================
+   1. ПАЛИТРА И БАЗОВЫЕ СТИЛИ
+   ========================================================= */
+:root{
+  --bg:#F7F1E8; --surface:#FFFBF5; --surface-2:#EFE5D6; --border:#E2D5C3;
+  --text:#3B2A1E; --text-muted:#8A7462; --brown:#6B4226; --brown-soft:#A07855;
+  --orange:#E07A2E; --orange-soft:#F4C79B; --danger:#A33A1F; --success:#7C8B4F;
+  --focus:#E07A2E66;
+  --r-card:14px; --r-ctl:10px; --topbar-h:64px;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--text);font:15px/1.5 "Segoe UI",system-ui,-apple-system,Roboto,Arial,sans-serif;min-width:320px;-webkit-font-smoothing:antialiased}
+h2{font-size:22px;font-weight:600;color:var(--brown);margin:0 0 16px}
+h3{font-size:17px;font-weight:600;color:var(--brown);margin:0}
+p{margin:0 0 12px}
+.num,.tnum{font-variant-numeric:tabular-nums}
+.muted{color:var(--text-muted)}
+.hidden{display:none!important}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+.ic{flex:none;vertical-align:middle}
+
+/* =========================================================
+   2. ШАПКА
+   ========================================================= */
+.topbar{position:sticky;top:0;z-index:50;background:rgba(247,241,232,.94);backdrop-filter:blur(8px);border-bottom:1px solid var(--border)}
+.topbar-inner{max-width:1440px;margin:0 auto;padding:10px 24px;display:flex;align-items:center;gap:16px 20px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:10px;min-width:0}
+.brand-mark{width:36px;height:36px;border-radius:10px;background:var(--brown);color:#fff;display:grid;place-items:center;flex:none}
+.brand h1{font-size:16px;margin:0;color:var(--brown);font-weight:700;line-height:1.2}
+.brand small{display:block;color:var(--text-muted);font-size:12.5px}
+.tabs{display:flex;gap:2px;background:var(--surface-2);padding:4px;border-radius:12px;margin:0 auto;flex-wrap:wrap}
+.tab{border:0;background:transparent;padding:6px 13px;border-radius:9px;color:var(--text-muted);font-weight:600;font-size:14px;cursor:pointer;transition:background .15s,color .15s}
+.tab:hover{color:var(--brown)}
+.tab.active{background:var(--surface);color:var(--brown);box-shadow:0 0 0 1px var(--border)}
+.top-right{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.today{text-align:right;line-height:1.25}
+.today b{display:block;font-size:14px;font-weight:600}
+.today span{font-size:12px;color:var(--text-muted)}
+.today span.off{color:var(--orange)}
+.save-ind{font-size:12px;color:var(--success);display:flex;align-items:center;gap:4px;opacity:.0;transition:opacity .3s}
+.save-ind.show{opacity:1}
+.backup-rem{border:1px dashed var(--orange);background:#FDF0E3;color:#9A4E12;border-radius:999px;padding:3px 10px;font-size:12px;cursor:pointer;display:flex;align-items:center;gap:6px}
+.banner{max-width:1440px;margin:12px auto 0;padding:10px 16px;border-radius:var(--r-ctl);background:#F8E3DA;border:1px solid #E4B7A6;color:var(--danger);display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+
+/* =========================================================
+   3. КНОПКИ, ПОЛЯ, БЕЙДЖИ
+   ========================================================= */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border-radius:var(--r-ctl);padding:8px 14px;border:1px solid transparent;cursor:pointer;font-weight:600;font-size:14px;white-space:nowrap;transition:filter .15s,background .15s,border-color .15s;background:transparent;line-height:1.3}
+.btn:hover{filter:brightness(.93)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn.primary{background:var(--orange);color:#fff}
+.btn.big{padding:10px 18px;font-size:15px}
+.btn.ghost{border-color:var(--brown-soft);color:var(--brown)}
+.btn.ghost:hover{background:var(--surface-2);filter:none}
+.btn.danger{color:var(--danger);border-color:#E4B7A6}
+.btn.danger:hover{background:#F8E3DA;filter:none}
+.btn.danger-fill{background:var(--danger);color:#fff}
+.btn.sm{padding:5px 10px;font-size:13px}
+.btn.success{background:transparent;border-color:#C7CDA9;color:#56622F}
+.btn.success:hover{background:#EEF0E0;filter:none}
+.icon-btn{border:0;background:transparent;border-radius:8px;width:32px;height:32px;display:inline-grid;place-items:center;color:var(--brown-soft);cursor:pointer;transition:background .15s,color .15s}
+.icon-btn:hover{background:var(--surface-2);color:var(--brown)}
+.icon-btn.danger:hover{color:var(--danger);background:#F8E3DA}
+.link{border:0;background:none;padding:0;color:var(--brown);font-weight:600;text-decoration:underline;text-decoration-color:var(--orange-soft);text-underline-offset:3px;cursor:pointer}
+input[type=text],input[type=search],input[type=number],input[type=date],input:not([type]),select,textarea{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-ctl);padding:7px 10px;min-height:38px;transition:border-color .15s}
+input:focus,select:focus,textarea:focus{border-color:var(--orange);outline:3px solid var(--focus);outline-offset:0}
+input[readonly]{background:var(--surface-2);color:var(--text-muted)}
+textarea{resize:vertical;min-height:80px;width:100%}
+.field{display:flex;flex-direction:column;gap:4px;min-width:0}
+.field>span{font-size:13px;font-weight:600;color:var(--text-muted)}
+.field input,.field select{width:100%}
+.err{font-style:normal;font-size:12.5px;color:var(--danger);min-height:0}
+.err:empty{display:none}
+.counter{font-size:12px;color:var(--text-muted);align-self:flex-end}
+.badge{display:inline-flex;align-items:center;gap:4px;padding:2px 10px;border-radius:999px;font-size:12.5px;font-weight:600;white-space:nowrap;background:var(--cb);color:var(--t)}
+.st-work{--c:#A07855;--t:#6B4226;--cb:rgba(160,120,85,.15)}
+.st-soon{--c:#F4C79B;--t:#945013;--cb:rgba(244,199,155,.45)}
+.st-today{--c:#E07A2E;--t:#A34A0C;--cb:rgba(224,122,46,.17)}
+.st-overdue{--c:#A33A1F;--t:#A33A1F;--cb:rgba(163,58,31,.14)}
+.st-overdue.badge{font-weight:700}
+.st-done{--c:#7C8B4F;--t:#56622F;--cb:rgba(124,139,79,.16)}
+.st-late{--c:#CF8A4F;--t:#95541D;--cb:rgba(207,138,79,.17)}
+.st-cancelled{--c:#A8A098;--t:#6F665F;--cb:rgba(150,140,130,.15)}
+.st-cancelled.badge{text-decoration:line-through}
+.chip{border:1px solid var(--border);background:var(--surface);border-radius:999px;padding:4px 12px;font-size:13px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;color:var(--text-muted);font-weight:600}
+.chip .dot{width:8px;height:8px;border-radius:50%;background:var(--c)}
+.chip.on{background:var(--cb,var(--surface-2));border-color:var(--c,var(--brown-soft));color:var(--t,var(--brown))}
+.pill{background:var(--surface-2);border-radius:999px;padding:1px 9px;font-size:12.5px;color:var(--brown);font-weight:600}
+
+/* =========================================================
+   4. РАЗМЕТКА СТРАНИЦЫ, КАРТОЧКИ
+   ========================================================= */
+main{max-width:1440px;margin:0 auto;padding:24px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-card)}
+.pad{padding:18px 20px}
+.section-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+.section-head h2{margin:0}
+.counters{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px;margin-bottom:20px}
+.counter-card{padding:16px 20px;cursor:pointer;text-align:left;transition:border-color .15s,transform .15s;display:flex;flex-direction:column;gap:2px;font:inherit;color:inherit}
+.counter-card:hover{border-color:var(--brown-soft)}
+.counter-card .label{font-size:13.5px;color:var(--text-muted);font-weight:600;display:flex;align-items:center;gap:6px}
+.counter-card .value{font-size:32px;font-weight:700;line-height:1.15;font-variant-numeric:tabular-nums;color:var(--brown)}
+.counter-card.hot .value{color:var(--danger)}
+.counter-card.warm .value{color:var(--orange)}
+.counter-card.good .value{color:var(--success)}
+.seg{display:inline-flex;background:var(--surface-2);border-radius:10px;padding:3px}
+.seg button{border:0;background:transparent;padding:5px 12px;border-radius:8px;font-size:13.5px;font-weight:600;color:var(--text-muted);cursor:pointer}
+.seg button.on{background:var(--surface);color:var(--brown);box-shadow:0 0 0 1px var(--border)}
+.empty{text-align:center;padding:40px 20px;color:var(--text-muted)}
+.empty b{display:block;color:var(--text);font-size:16px;margin-bottom:6px}
+.empty .btn{margin-top:12px}
+footer{max-width:1440px;margin:0 auto;padding:8px 24px 32px;color:var(--text-muted);font-size:12.5px;display:flex;gap:6px;align-items:center}
+
+/* ---------- Вкладка «Сроки» ---------- */
+.rooms{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.room-col{padding:18px 18px 8px}
+.room-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px;flex-wrap:wrap}
+.room-head h3{font-size:19px}
+.mini{display:flex;gap:8px;font-size:13px}
+.mini span{padding:2px 10px;border-radius:999px;background:var(--surface-2);font-weight:600;color:var(--brown)}
+.mini span.bad{background:rgba(163,58,31,.12);color:var(--danger)}
+.emp-block{border-top:1px solid var(--border);padding:12px 0}
+.emp-head{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.emp-block.collapsed .emp-head{margin-bottom:0}
+.avatar{width:30px;height:30px;border-radius:50%;background:var(--surface-2);color:var(--brown);font-size:12px;font-weight:700;display:grid;place-items:center;flex:none}
+.emp-head b{font-weight:600}
+.emp-head .muted{font-size:13px}
+.emp-head .pill{margin-left:auto}
+.emp-block.collapsed .none{margin-left:auto;font-size:13px;color:var(--text-muted);font-style:italic}
+.dl-row{display:grid;grid-template-columns:4px 64px minmax(0,1fr) auto auto;align-items:center;gap:12px;padding:8px 10px 8px 0;border-radius:10px;cursor:pointer;background:transparent;transition:background .15s;margin-bottom:4px}
+.dl-row:hover{background:var(--surface-2)}
+.dl-row .ind{align-self:stretch;border-radius:4px;background:var(--c)}
+.dl-row .no{font-weight:700;color:var(--brown);font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dl-row .desc{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.dl-row .desc small{display:block;color:var(--text-muted);font-size:12.5px}
+.dl-row .left{text-align:right;font-weight:700;font-size:15.5px;white-space:nowrap;color:var(--t);font-variant-numeric:tabular-nums}
+.dl-row.st-overdue{background:#F9E7DE}
+.dl-row.st-overdue:hover{background:#F4DACD}
+
+/* ---------- Таблицы ---------- */
+.filters{padding:14px 16px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:16px}
+.search{position:relative;flex:1 1 260px;min-width:200px}
+.search .ic{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--text-muted)}
+.search input{width:100%;padding-left:34px}
+.filters .range{display:flex;align-items:center;gap:6px;font-size:13.5px;color:var(--text-muted)}
+.filters .chips{display:flex;gap:6px;flex-wrap:wrap;flex-basis:100%}
+.table-wrap{overflow:auto;max-height:calc(100vh - var(--topbar-h) - 120px);border-radius:var(--r-card)}
+table{width:100%;border-collapse:separate;border-spacing:0}
+th{position:sticky;top:0;z-index:2;background:var(--surface-2);text-align:left;font-size:12.5px;font-weight:700;color:var(--brown);padding:10px 10px;white-space:nowrap;border-bottom:1px solid var(--border)}
+th.sortable{cursor:pointer;user-select:none}
+th.sortable:hover{color:var(--orange)}
+th .arrow{font-size:10px;margin-left:3px;color:var(--orange)}
+td{padding:9px 10px;border-bottom:1px solid var(--border);vertical-align:middle;font-size:14px}
+tbody tr{cursor:pointer;transition:background .12s}
+tbody tr:nth-child(even) td{background:rgba(239,229,214,.35)}
+tbody tr:hover td{background:var(--surface-2)}
+tbody tr.row-overdue td{background:#F9E7DE}
+tbody tr.row-overdue td:first-child{box-shadow:inset 4px 0 0 var(--danger)}
+tbody tr.row-cancelled td{color:var(--text-muted)}
+td.desc{max-width:260px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#req-results th,#req-results td{padding-left:8px;padding-right:8px}
+#req-results .icon-btn{width:28px}
+td.type{max-width:140px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+td.emp{white-space:nowrap}
+td.no{font-weight:700;color:var(--brown);white-space:nowrap}
+td.actions{white-space:nowrap;text-align:right;cursor:default}
+.delay-pos{color:var(--danger);font-weight:700}
+.table-foot{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;flex-wrap:wrap;border-top:1px solid var(--border)}
+.pager{display:flex;gap:4px;align-items:center}
+.pager button{min-width:32px;height:32px;border-radius:8px;border:1px solid var(--border);background:var(--surface);cursor:pointer;font-weight:600}
+.pager button.on{background:var(--brown);color:#fff;border-color:var(--brown)}
+.manual-mark{color:var(--orange);margin-left:4px}
+tr.archived td{font-style:italic;color:var(--text-muted)}
+
+/* ---------- Сотрудники ---------- */
+.emp-groups{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.emp-cards{display:grid;gap:12px}
+.emp-card{padding:14px 16px;display:grid;gap:10px}
+.emp-card .top{display:flex;gap:12px;align-items:center}
+.emp-card .top .avatar{width:40px;height:40px;font-size:14px}
+.emp-card .name{font-weight:600}
+.emp-card .pos{font-size:13px;color:var(--text-muted)}
+.emp-card .btns{margin-left:auto;display:flex;gap:2px}
+.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.metric{background:var(--bg);border-radius:10px;padding:8px 10px}
+.metric b{display:block;font-size:19px;font-variant-numeric:tabular-nums;color:var(--brown)}
+.metric span{font-size:12px;color:var(--text-muted)}
+.metric.bad b{color:var(--danger)}
+details.archive{margin-top:20px}
+details.archive summary{cursor:pointer;padding:14px 18px;font-weight:600;color:var(--brown)}
+.arch-list{padding:0 18px 14px;display:grid;gap:8px}
+.arch-item{display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--border)}
+
+/* ---------- Статистика ---------- */
+.stat-cards{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:12px;margin-bottom:20px}
+.stat-cards .counter-card{cursor:default}
+.stat-cards .value{font-size:28px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px}
+.cmp{display:grid;grid-template-columns:1fr auto auto;gap:6px 16px;font-size:14px}
+.cmp .h{font-weight:700;color:var(--brown);font-size:13px;text-align:right}
+.cmp .h:first-child{text-align:left}
+.cmp .v{text-align:right;font-variant-numeric:tabular-nums;font-weight:600}
+.cmp .l{color:var(--text-muted)}
+.cmp .better{color:var(--success)}
+.chart svg{width:100%;height:auto;display:block}
+.legend{display:flex;gap:16px;font-size:13px;color:var(--text-muted);margin-top:6px}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+
+/* ---------- История ---------- */
+.h-list{list-style:none;margin:0;padding:0}
+.h-item{display:grid;grid-template-columns:36px 1fr;gap:12px;padding:12px 18px;border-bottom:1px solid var(--border)}
+.h-item:last-child{border-bottom:0}
+.h-ic{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:var(--surface-2);color:var(--brown-soft)}
+.h-ic.a-completed{background:rgba(124,139,79,.16);color:var(--success)}
+.h-ic.a-deleted,.h-ic.a-cancelled,.h-ic.a-employee_removed{background:rgba(163,58,31,.12);color:var(--danger)}
+.h-ic.a-deadline_changed{background:rgba(224,122,46,.15);color:var(--orange)}
+.h-ic.a-created{background:rgba(224,122,46,.15);color:var(--orange)}
+.h-text{font-size:14.5px}
+.h-meta{font-size:12.5px;color:var(--text-muted)}
+.day-sep{padding:8px 18px;background:var(--surface-2);font-size:12.5px;font-weight:700;color:var(--brown)}
+
+/* ---------- Настройки ---------- */
+.settings{display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start}
+.settings .card{padding:18px 20px}
+.settings h3{margin-bottom:6px}
+.settings .desc-text{font-size:13.5px;color:var(--text-muted);margin-bottom:14px}
+.types-table td{padding:6px 6px;cursor:default}
+.types-table tbody tr{cursor:default}
+.types-table tbody tr:hover td{background:transparent}
+.types-table input{width:100%;min-height:34px;padding:5px 8px}
+.types-table .norm input{width:84px}
+.types-table tr.off td input{color:var(--text-muted);text-decoration:line-through}
+.date-chips{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 12px}
+.date-chip{display:inline-flex;align-items:center;gap:4px;background:var(--bg);border:1px solid var(--border);border-radius:999px;padding:2px 4px 2px 10px;font-size:13px;font-variant-numeric:tabular-nums}
+.date-chip small{color:var(--text-muted)}
+.date-chip button{border:0;background:none;width:22px;height:22px;border-radius:50%;cursor:pointer;color:var(--text-muted);display:grid;place-items:center}
+.date-chip button:hover{background:#F8E3DA;color:var(--danger)}
+.row-inline{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.year-h{font-size:12.5px;font-weight:700;color:var(--brown);margin-top:6px}
+.danger-zone{border-color:#E4B7A6!important;background:#FDF5F1!important}
+.danger-zone h3{color:var(--danger)}
+.info-note{display:flex;gap:10px;align-items:flex-start;background:var(--bg);border-radius:10px;padding:10px 12px;font-size:13.5px;color:var(--text-muted)}
+
+/* =========================================================
+   5. МОДАЛЬНЫЕ ОКНА И УВЕДОМЛЕНИЯ
+   ========================================================= */
+.overlay{position:fixed;inset:0;background:rgba(59,42,30,.35);display:flex;align-items:flex-start;justify-content:center;padding:6vh 16px;overflow:auto;z-index:100;opacity:0;transition:opacity .2s}
+.overlay.show{opacity:1}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:16px;width:100%;max-width:600px;transform:translateY(12px);transition:transform .2s;box-shadow:0 24px 60px -24px rgba(59,42,30,.45)}
+.overlay.show .modal{transform:none}
+.modal.sm{max-width:440px}
+.modal.lg{max-width:780px}
+.modal-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:16px 20px 0}
+.modal-body{padding:16px 20px}
+.modal-foot{display:flex;justify-content:flex-end;gap:8px;padding:14px 20px;border-top:1px solid var(--border);flex-wrap:wrap}
+.modal-foot .spacer{margin-right:auto}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px 16px}
+.span2{grid-column:span 2}
+.dl-hint{justify-content:flex-end;font-size:13px;color:var(--text-muted);gap:6px}
+.dl-hint .manual{color:var(--orange);font-weight:600;display:flex;align-items:center;gap:4px}
+.warn-box:empty{display:none}
+.custom-type{display:grid;grid-template-columns:1fr 150px;gap:10px 16px;background:var(--bg);border:1px dashed var(--orange-soft);border-radius:12px;padding:12px 14px}
+.custom-type.hidden{display:none}
+.custom-type small{grid-column:1 / -1;font-size:12.5px}
+.dl-set{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:13px;margin-top:-4px}
+.dl-set .chip{padding:3px 10px}
+.dl-set .chip.on{background:#FDF0E3;border-color:var(--orange);color:var(--brown)}
+.dl-hint.span2{flex-direction:row;flex-wrap:wrap;align-items:center;justify-content:flex-start}
+.warn{background:#FDF0E3;border:1px solid var(--orange-soft);color:#8A4A12;padding:8px 12px;border-radius:10px;font-size:13.5px;display:flex;gap:8px;align-items:center}
+.error-box{background:#F8E3DA;border:1px solid #E4B7A6;color:var(--danger);padding:8px 12px;border-radius:10px;font-size:13.5px}
+.kv{display:grid;grid-template-columns:170px 1fr;gap:8px 16px;font-size:14.5px;margin-bottom:16px}
+.kv dt{color:var(--text-muted)}
+.kv dd{margin:0;font-weight:500}
+.card-desc{background:var(--bg);border-radius:10px;padding:12px 14px;white-space:pre-wrap;margin-bottom:16px}
+.mini-hist{list-style:none;padding:0;margin:0;border:1px solid var(--border);border-radius:12px;max-height:240px;overflow:auto}
+.mini-hist li{padding:8px 12px;border-bottom:1px solid var(--border);font-size:13.5px;display:flex;gap:10px}
+.mini-hist li:last-child{border-bottom:0}
+.mini-hist time{color:var(--text-muted);white-space:nowrap;font-variant-numeric:tabular-nums}
+.radio-row{display:flex;gap:8px}
+.radio-row label{flex:1;border:1px solid var(--border);border-radius:10px;padding:8px 12px;cursor:pointer;display:flex;align-items:center;gap:8px;font-weight:600}
+.radio-row label:has(input:checked){border-color:var(--orange);background:#FDF0E3;color:var(--brown)}
+#toast-root{position:fixed;right:20px;bottom:20px;z-index:200;display:flex;flex-direction:column;gap:8px;align-items:flex-end}
+.toast{background:var(--text);color:#FFF6EA;border-radius:12px;padding:10px 14px;display:flex;align-items:center;gap:14px;font-size:14px;opacity:0;transform:translateY(8px);transition:opacity .2s,transform .2s;max-width:420px;box-shadow:0 10px 30px -10px rgba(59,42,30,.5)}
+.toast.show{opacity:1;transform:none}
+.toast-undo{border:0;background:rgba(255,255,255,.12);color:var(--orange-soft);border-radius:8px;padding:5px 10px;font-weight:700;cursor:pointer;white-space:nowrap}
+
+/* ---------- Приветственный экран ---------- */
+.welcome{position:fixed;inset:0;background:var(--bg);z-index:150;display:grid;place-items:center;padding:24px;overflow:auto}
+.welcome-box{max-width:620px;width:100%;padding:36px;text-align:center}
+.welcome-box .brand-mark{width:56px;height:56px;border-radius:16px;margin:0 auto 16px}
+.welcome-box h2{font-size:26px;margin-bottom:8px}
+.welcome-box .choices{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:24px 0 16px}
+.choice{border:1px solid var(--border);background:var(--bg);border-radius:14px;padding:18px;text-align:left;cursor:pointer;transition:border-color .15s}
+.choice:hover{border-color:var(--orange)}
+.choice b{display:block;color:var(--brown);margin-bottom:4px;font-size:15.5px}
+.choice span{font-size:13.5px;color:var(--text-muted)}
+
+/* ---------- Узкие экраны ---------- */
+@media (max-width:1180px){
+  .stat-cards{grid-template-columns:repeat(3,1fr)}
+}
+@media (max-width:980px){
+  .rooms,.emp-groups,.grid2,.settings{grid-template-columns:1fr}
+  .counters{grid-template-columns:repeat(2,1fr)}
+  .tabs{order:3;margin:0;width:100%;overflow-x:auto;flex-wrap:nowrap}
+}
+@media (max-width:640px){
+  main{padding:16px}
+  .topbar-inner{padding:10px 16px}
+  .form-grid,.welcome-box .choices{grid-template-columns:1fr}
+  .span2{grid-column:auto}
+  .stat-cards{grid-template-columns:repeat(2,1fr)}
+  .metrics{grid-template-columns:repeat(2,1fr)}
+  .dl-row{grid-template-columns:4px 52px minmax(0,1fr) auto}
+  .dl-row .act{grid-column:3 / span 2;justify-self:end}
+  .kv{grid-template-columns:1fr}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+<!-- ====================== ШАПКА ====================== -->
+<header class="topbar" id="topbar">
+  <div class="topbar-inner">
+    <div class="brand">
+      <div class="brand-mark"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5M9 2h6"/></svg></div>
+      <div><h1>Контроль сроков заявок</h1><small>Отдел ценовой экспертизы · каб. 103, 104</small></div>
+    </div>
+    <nav class="tabs" id="tabs" role="tablist" aria-label="Разделы"></nav>
+    <div class="top-right">
+      <button class="backup-rem hidden" id="backup-rem" data-action="tab" data-tab="settings" title="Перейти к резервному копированию"></button>
+      <span class="save-ind" id="save-ind" aria-live="polite"></span>
+      <div class="today" id="today-label"></div>
+      <button class="btn primary big" data-action="new-request" title="Новая заявка (клавиша N)">+ Новая заявка</button>
+    </div>
+  </div>
+</header>
+<div id="storage-warn" class="banner hidden" role="alert"></div>
+
+<!-- ====================== РАЗДЕЛЫ ====================== -->
+<main id="main">
+  <section class="tab-panel" id="tab-deadlines"></section>
+  <section class="tab-panel" id="tab-requests"></section>
+  <section class="tab-panel" id="tab-employees"></section>
+  <section class="tab-panel" id="tab-stats"></section>
+  <section class="tab-panel" id="tab-history"></section>
+  <section class="tab-panel" id="tab-settings"></section>
+</main>
+<footer>
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg>
+  Данные хранятся только в этом браузере на этом компьютере. Регулярно делайте резервную копию (Настройки → Резервная копия).
+</footer>
+
+<div id="welcome" class="welcome hidden"></div>
+<div id="modal-root"></div>
+<div id="toast-root" aria-live="polite"></div>
+<input type="file" id="import-file" accept=".json,application/json" class="hidden">
+
+<noscript><div class="banner">Для работы сайта необходимо включить JavaScript.</div></noscript>
+
+<script>
+'use strict';
+/* =========================================================
+   1. УТИЛИТЫ
+   ========================================================= */
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+const clone = o => JSON.parse(JSON.stringify(o));
+const pad = n => String(n).padStart(2, '0');
+const last = a => a[a.length - 1];
+const byName = (a, b) => a.fullName.localeCompare(b.fullName, 'ru');
+
+/** Склонение: plural(5, ['день','дня','дней']) → 'дней' */
+function plural(n, forms) {
+  const a = Math.abs(n) % 100, b = a % 10;
+  if (a > 10 && a < 20) return forms[2];
+  if (b > 1 && b < 5) return forms[1];
+  if (b === 1) return forms[0];
+  return forms[2];
+}
+const wdFull = n => `${n} ${plural(n, ['рабочий день', 'рабочих дня', 'рабочих дней'])}`;
+const fmtNum = (n, d = 1) => (Math.round(n * 10 ** d) / 10 ** d).toString().replace('.', ',');
+
+/* ---------- Иконки (встроенные SVG) ---------- */
+const ICONS = {
+  check: '<path d="M5 12.5l4.5 4.5L19 7.5"/>',
+  undo: '<path d="M9 14L4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 010 11H11"/>',
+  edit: '<path d="M4 20h4L19 9l-4-4L4 16v4z"/><path d="M13.5 6.5l4 4"/>',
+  ban: '<circle cx="12" cy="12" r="8.5"/><path d="M6 6l12 12"/>',
+  trash: '<path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/>',
+  plus: '<path d="M12 5v14M5 12h14"/>',
+  search: '<circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4-4"/>',
+  download: '<path d="M12 4v11M7 10l5 5 5-5M5 20h14"/>',
+  upload: '<path d="M12 16V5M7 10l5-5 5 5M5 20h14"/>',
+  user: '<circle cx="12" cy="8" r="4"/><path d="M4 20c1.5-4 4.5-6 8-6s6.5 2 8 6"/>',
+  users: '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 19c1.2-3.3 3.6-5 6.5-5s5.3 1.7 6.5 5"/><path d="M16 4.5a3.5 3.5 0 010 7M18 14c2 .6 3.3 2.2 4 5"/>',
+  clock: '<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>',
+  alert: '<path d="M12 3l9.5 17h-19L12 3z"/><path d="M12 10v4.5M12 17.5h.01"/>',
+  calendar: '<rect x="3.5" y="5" width="17" height="15" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/>',
+  x: '<path d="M6 6l12 12M18 6L6 18"/>',
+  archive: '<rect x="3" y="4" width="18" height="5" rx="1.5"/><path d="M5 9v10h14V9M10 13h4"/>',
+  settings: '<circle cx="12" cy="12" r="3"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1"/>',
+  list: '<path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"/>',
+  flame: '<path d="M12 21c-4 0-7-2.8-7-6.5 0-3.3 2.5-5.5 4-8 .5 2 1.5 3 3 3.5C12 7 13 5 14 3c2.5 2.5 5 6 5 10.5 0 4.2-3 7.5-7 7.5z"/>',
+  info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/>'
+};
+const icon = (n, s = 18) => `<svg class="ic" width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[n] || ''}</svg>`;
+
+/* =========================================================
+   2. ДАТЫ И ПРОИЗВОДСТВЕННЫЙ КАЛЕНДАРЬ
+   (ISO-строки ГГГГ-ММ-ДД разбираются вручную — без сдвигов UTC)
+   ========================================================= */
+const MONTHS_GEN = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
+const MONTHS_NOM = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
+const MONTHS_SHORT = ['янв', 'фев', 'мар', 'апр', 'май', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'];
+const DOW_SHORT = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
+
+function parseISO(s) { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d); }
+function toISO(d) { return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; }
+function todayISO() { return toISO(new Date()); }
+function addDaysISO(s, n) { const d = parseISO(s); d.setDate(d.getDate() + n); return toISO(d); }
+function isISO(s) { return typeof s === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(s); }
+function fmtDate(s) { if (!s) return '—'; const [y, m, d] = s.split('-'); return `${d}.${m}.${y}`; }
+function fmtShort(s) { if (!s) return '—'; const [, m, d] = s.split('-'); return `${d}.${m}`; }
+function fmtLong(s) { const d = parseISO(s); return `${DOW_SHORT[d.getDay()]}, ${d.getDate()} ${MONTHS_GEN[d.getMonth()]} ${d.getFullYear()}`; }
+function fmtDateTime(ts) { const d = new Date(ts); return `${pad(d.getDate())}.${pad(d.getMonth() + 1)}.${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`; }
+function dow(s) { return DOW_SHORT[parseISO(s).getDay()].toLowerCase(); }
+
+let calCache = null; // кэш множеств праздников, сбрасывается при сохранении
+function cal() {
+  if (!calCache) calCache = { h: new Set(db.settings.holidays), w: new Set(db.settings.extraWorkdays) };
+  return calCache;
+}
+/** Рабочий ли день: перенесённые рабочие — да, праздники — нет, иначе Пн–Пт */
+function isWorkday(s) {
+  const c = cal();
+  if (c.w.has(s)) return true;
+  if (c.h.has(s)) return false;
+  const d = parseISO(s).getDay();
+  return d !== 0 && d !== 6;
+}
+/** Срок = дата регистрации («день 0», сдвигается на ближайший рабочий) + N рабочих дней */
+function addWorkdays(start, n) {
+  let d = start, g = 0;
+  while (!isWorkday(d) && g++ < 400) d = addDaysISO(d, 1);
+  let c = 0; g = 0;
+  while (c < n && g++ < 5000) { d = addDaysISO(d, 1); if (isWorkday(d)) c++; }
+  return d;
+}
+/** Отступ назад на N рабочих дней (для демо-данных) */
+function subWorkdays(start, n) {
+  let d = start, c = 0, g = 0;
+  while (c < n && g++ < 5000) { d = addDaysISO(d, -1); if (isWorkday(d)) c++; }
+  return d;
+}
+/** Количество рабочих дней в интервале (fromExcl; toIncl] */
+function countWorkdays(fromExcl, toIncl) {
+  if (!fromExcl || !toIncl || toIncl <= fromExcl) return 0;
+  let d = fromExcl, c = 0, g = 0;
+  while (d < toIncl && g++ < 20000) { d = addDaysISO(d, 1); if (isWorkday(d)) c++; }
+  return c;
+}
+function rfHolidays(y) {
+  return ['01-01', '01-02', '01-03', '01-04', '01-05', '01-06', '01-07', '01-08', '02-23', '03-08', '05-01', '05-09', '06-12', '11-04'].map(md => `${y}-${md}`);
+}
+
+/* =========================================================
+   3. ХРАНИЛИЩЕ
+   ========================================================= */
+const KEY = 'priceExpertise.v1';
+const UI_KEY = 'priceExpertise.ui';
+let db = null;
+let corruptRaw = null;
+
+function defaultTypes() {
+  return [
+    ['Проверка сметной документации', 10], ['Проверка достоверности цены', 5],
+    ['Анализ коммерческих предложений', 3], ['Консультация / справка', 2], ['Без норматива', null]
+  ].map(([name, normDays]) => ({ id: uid(), name, normDays, active: true }));
+}
+function defaultDB() {
+  return {
+    version: 1,
+    settings: {
+      requestTypes: defaultTypes(), holidays: rfHolidays(new Date().getFullYear()), extraWorkdays: [],
+      numberPrefix: '', nextNumber: 1, lastBackupAt: null
+    },
+    employees: [], requests: [], history: []
+  };
+}
+function validate(d) {
+  return !!(d && typeof d === 'object' && d.settings && typeof d.settings === 'object' &&
+    Array.isArray(d.settings.requestTypes) && Array.isArray(d.employees) &&
+    Array.isArray(d.requests) && Array.isArray(d.history) &&
+    d.requests.every(r => r && r.id && isISO(r.deadline) && isISO(r.registeredAt)) &&
+    d.employees.every(e => e && e.id && e.fullName));
+}
+/** Миграции будущих версий схемы данных */
+function migrate(d) {
+  d.version = d.version || 1;
+  const s = d.settings;
+  s.holidays = Array.isArray(s.holidays) ? s.holidays : [];
+  s.extraWorkdays = Array.isArray(s.extraWorkdays) ? s.extraWorkdays : [];
+  s.numberPrefix = s.numberPrefix || '';
+  s.nextNumber = Number(s.nextNumber) || 1;
+  if (!('lastBackupAt' in s)) s.lastBackupAt = null;
+  d.employees.forEach(e => { if (!e.shortName) e.shortName = shortNameOf(e.fullName); e.room = e.room === '104' ? '104' : '103'; });
+  d.requests.forEach(r => { r.number = String(r.number); r.cancelled = !!r.cancelled; r.completedAt = r.completedAt || null; });
+  return d;
+}
+function load() {
+  let raw;
+  try { raw = localStorage.getItem(KEY); } catch (e) { return 'unavailable'; }
+  if (raw == null) return 'empty';
+  try {
+    const d = JSON.parse(raw);
+    if (!validate(d)) throw new Error('bad structure');
+    db = migrate(d);
+    return 'ok';
+  } catch (e) { corruptRaw = raw; return 'corrupt'; }
+}
+function save() {
+  calCache = null;
+  try {
+    localStorage.setItem(KEY, JSON.stringify(db));
+    showSaved();
+    $('#storage-warn').classList.add('hidden');
+    return true;
+  } catch (e) {
+    showStorageWarning();
+    return false;
+  }
+}
+function showSaved() {
+  const el = $('#save-ind'), d = new Date();
+  el.innerHTML = `${icon('check', 14)} Сохранено ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  el.classList.add('show');
+  clearTimeout(showSaved.t);
+  showSaved.t = setTimeout(() => el.classList.remove('show'), 4000);
+}
+function showStorageWarning() {
+  const el = $('#storage-warn');
+  el.innerHTML = `${icon('alert')} <span><b>Не удалось сохранить данные.</b> Хранилище браузера недоступно или переполнено — изменения могут быть потеряны после закрытия страницы. Скачайте резервную копию.</span>
+    <button class="btn danger sm" data-action="backup">${icon('download', 16)} Скачать резервную копию</button>`;
+  el.classList.remove('hidden');
+}
+/** Сохранить и перерисовать интерфейс */
+function commit() { save(); renderAll(); }
+
+/* Состояние интерфейса (активная вкладка и пр.) */
+let ui = { tab: 'deadlines', onlyHot: false, months: 6 };
+try { Object.assign(ui, JSON.parse(localStorage.getItem(UI_KEY) || '{}')); } catch (e) { /* ничего */ }
+function saveUI() { try { localStorage.setItem(UI_KEY, JSON.stringify(ui)); } catch (e) { /* ничего */ } }
+
+/* =========================================================
+   4. МОДЕЛЬ: СПРАВОЧНИКИ, СТАТУСЫ, ИСТОРИЯ
+   ========================================================= */
+const empById = id => db.employees.find(e => e.id === id);
+const typeById = id => db.settings.requestTypes.find(t => t.id === id);
+const reqById = id => db.requests.find(r => r.id === id);
+const empName = id => (empById(id) || {}).shortName || '—';
+const isActive = r => !r.cancelled && !r.completedAt;
+function shortNameOf(full) {
+  const p = String(full || '').trim().split(/\s+/).filter(Boolean);
+  if (!p.length) return '';
+  return p[0] + (p.length > 1 ? ' ' + p.slice(1).map(x => x[0].toUpperCase() + '.').join('') : '');
+}
+const initials = e => { const p = e.fullName.trim().split(/\s+/); return ((p[0] || '')[0] || '') + ((p[1] || '')[0] || ''); };
+
+const STATUS = {
+  work: 'В работе', soon: 'Срок близко', today: 'Срок сегодня', overdue: 'Просрочена',
+  done: 'Исполнена в срок', late: 'Исполнена с задержкой', cancelled: 'Отменена'
+};
+const RANK = { overdue: 0, today: 1, soon: 2, work: 3, late: 4, done: 5, cancelled: 6 };
+
+/** Расчёт статуса, остатка и задержки «на сегодня» */
+function reqInfo(r) {
+  const t = todayISO();
+  if (r.cancelled) return { status: 'cancelled', delay: 0 };
+  if (r.completedAt) {
+    const delay = r.completedAt > r.deadline ? countWorkdays(r.deadline, r.completedAt) : 0;
+    return { status: delay > 0 ? 'late' : 'done', delay };
+  }
+  if (r.deadline < t) return { status: 'overdue', delay: countWorkdays(r.deadline, t) };
+  if (r.deadline === t) return { status: 'today', remaining: 0, delay: 0 };
+  const rem = countWorkdays(t, r.deadline);
+  return { status: rem <= 1 ? 'soon' : 'work', remaining: rem, delay: 0 };
+}
+function badge(i) {
+  return `<span class="badge st-${i.status}">${STATUS[i.status]}${i.status === 'late' ? ` · +${i.delay}` : ''}</span>`;
+}
+function leftText(i) {
+  if (i.status === 'overdue') return i.delay > 0 ? `просрочено на ${i.delay} р.д.` : 'срок прошёл';
+  if (i.status === 'today') return 'сегодня';
+  if (i.status === 'soon' || i.status === 'work') return `осталось ${i.remaining} р.д.`;
+  return '';
+}
+function typeLabel(t) { return t ? `${t.name}${t.normDays != null ? ` (${t.normDays} р.д.)` : ' (срок вручную)'}` : '—'; }
+
+const ACTIONS = {
+  created: ['Создание заявки', 'plus'], edited: ['Редактирование', 'edit'], deadline_changed: ['Изменение срока', 'calendar'],
+  reassigned: ['Передача заявки', 'users'], completed: ['Исполнение', 'check'], reopened: ['Возврат в работу', 'undo'],
+  cancelled: ['Отмена заявки', 'ban'], deleted: ['Удаление заявки', 'trash'], employee_added: ['Добавлен сотрудник', 'user'],
+  employee_edited: ['Изменён сотрудник', 'user'], employee_removed: ['Удаление сотрудника', 'archive'],
+  settings_changed: ['Настройки', 'settings'], data_imported: ['Импорт данных', 'upload']
+};
+/** Запись в журнал */
+function log(action, o = {}) {
+  db.history.push({
+    id: uid(), timestamp: o.timestamp || new Date().toISOString(), action,
+    requestId: o.requestId || null, employeeId: o.employeeId || null, requestNumber: o.requestNumber == null ? null : o.requestNumber,
+    snapshot: o.snapshot || '', details: o.details == null ? '' : o.details, demo: o.demo || undefined
+  });
+}
+function logReq(action, r, text, extra, opts = {}) {
+  log(action, Object.assign({
+    requestId: r.id, employeeId: r.employeeId, requestNumber: r.number,
+    snapshot: `№${r.number} · ${empName(r.employeeId)}`, details: extra ? Object.assign({}, extra, { text }) : text
+  }, opts));
+}
+const histPlain = h => typeof h.details === 'string' ? h.details : (h.details && h.details.text) || '';
+function histHTML(h) {
+  let txt = esc(histPlain(h));
+  if (h.requestId && h.requestNumber != null && reqById(h.requestId)) {
+    const token = '№' + esc(h.requestNumber);
+    txt = txt.replace(token, () => `<button class="link" data-action="open-req" data-id="${h.requestId}">${token}</button>`);
+  }
+  return txt;
+}
+function nextAutoNumber() {
+  const p = db.settings.numberPrefix; let n = db.settings.nextNumber;
+  while (db.requests.some(r => r.number === p + n)) n++;
+  return p + n;
+}
+function bumpNumber(num) {
+  const p = db.settings.numberPrefix;
+  if (!num.startsWith(p)) return;
+  const rest = num.slice(p.length);
+  if (/^\d+$/.test(rest) && +rest >= db.settings.nextNumber) db.settings.nextNumber = +rest + 1;
+}
+
+/* =========================================================
+   5. МОДАЛЬНЫЕ ОКНА, ПОДТВЕРЖДЕНИЯ, УВЕДОМЛЕНИЯ
+   ========================================================= */
+const modalStack = [];
+function openModal({ title, body, footer = '', size = '', onClose, isDirty, onSubmit }) {
+  const ov = document.createElement('div');
+  ov.className = 'overlay';
+  ov.innerHTML = `<div class="modal ${size}" role="dialog" aria-modal="true" aria-label="${esc(title)}">
+    <div class="modal-head"><h3>${esc(title)}</h3><button class="icon-btn" data-close aria-label="Закрыть">${icon('x')}</button></div>
+    <div class="modal-body">${body}</div>${footer ? `<div class="modal-foot">${footer}</div>` : ''}</div>`;
+  $('#modal-root').appendChild(ov);
+  const prevFocus = document.activeElement;
+  const m = {
+    el: ov, box: ov.firstElementChild, isDirty, onSubmit, closed: false,
+    async close(force) {
+      if (m.closed) return;
+      if (!force && m.isDirty && m.isDirty()) {
+        const ok = await confirmDialog({ title: 'Несохранённые изменения', text: 'Изменения не сохранены. Закрыть окно без сохранения?', ok: 'Закрыть без сохранения', danger: true });
+        if (!ok) return;
+      }
+      m.closed = true;
+      ov.classList.remove('show');
+      const i = modalStack.indexOf(m); if (i >= 0) modalStack.splice(i, 1);
+      setTimeout(() => ov.remove(), 200);
+      if (onClose) onClose();
+      if (prevFocus && prevFocus.focus && document.contains(prevFocus)) prevFocus.focus();
+    }
+  };
+  ov.addEventListener('mousedown', e => { if (e.target === ov) m.close(); });
+  $$('[data-close]', ov).forEach(b => b.addEventListener('click', () => m.close()));
+  modalStack.push(m);
+  requestAnimationFrame(() => ov.classList.add('show'));
+  setTimeout(() => {
+    const f = ov.querySelector('[autofocus]') || ov.querySelector('.modal-body input:not([readonly]),.modal-body select,.modal-body textarea') || ov.querySelector('.modal-foot .btn');
+    if (f) f.focus();
+  }, 40);
+  return m;
+}
+function confirmDialog({ title = 'Подтверждение', text, ok = 'Подтвердить', cancel = 'Отмена', danger = false }) {
+  return new Promise(res => {
+    let done = false;
+    const m = openModal({
+      title, size: 'sm', body: `<p>${text}</p>`,
+      footer: `<button class="btn ghost" data-close>${esc(cancel)}</button><button class="btn ${danger ? 'danger-fill' : 'primary'}" data-ok>${esc(ok)}</button>`,
+      onClose: () => { if (!done) res(false); }
+    });
+    m.el.querySelector('[data-ok]').addEventListener('click', () => { done = true; res(true); m.close(true); });
+  });
+}
+function toast(msg, opts = {}) {
+  const el = document.createElement('div');
+  el.className = 'toast';
+  el.innerHTML = `<span>${esc(msg)}</span>${opts.undo ? '<button class="toast-undo">Отменить действие</button>' : ''}`;
+  $('#toast-root').appendChild(el);
+  requestAnimationFrame(() => el.classList.add('show'));
+  const hide = () => { el.classList.remove('show'); setTimeout(() => el.remove(), 250); };
+  const tm = setTimeout(hide, opts.undo ? 5000 : 3000);
+  if (opts.undo) el.querySelector('button').onclick = () => { clearTimeout(tm); hide(); opts.undo(); };
+}
+/** Выполнить действие с возможностью отмены в течение 5 с */
+function withUndo(msg, fn) {
+  const snap = clone(db);
+  fn();
+  commit();
+  toast(msg, { undo: () => { db = snap; commit(); toast('Действие отменено'); } });
+}
+
+/* =========================================================
+   6. ОТРИСОВКА: ШАПКА И ПЕРЕКЛЮЧЕНИЕ ВКЛАДОК
+   ========================================================= */
+const TABS = [['deadlines', 'Сроки'], ['requests', 'Заявки'], ['employees', 'Сотрудники'], ['stats', 'Статистика'], ['history', 'История'], ['settings', 'Настройки']];
+
+function renderHeader() {
+  const t = todayISO();
+  $('#today-label').innerHTML = `<b>${fmtLong(t)}</b><span class="${isWorkday(t) ? '' : 'off'}">${isWorkday(t) ? 'рабочий день' : 'нерабочий день'}</span>`;
+  $('#tabs').innerHTML = TABS.map(([id, name], i) =>
+    `<button class="tab ${ui.tab === id ? 'active' : ''}" role="tab" aria-selected="${ui.tab === id}" data-action="tab" data-tab="${id}" title="${name} (клавиша ${i + 1})">${name}</button>`).join('');
+  // Напоминание о резервной копии
+  const rem = $('#backup-rem');
+  const hasData = db.requests.length || db.employees.length;
+  const lb = db.settings.lastBackupAt;
+  const old = !lb || (Date.now() - new Date(lb).getTime()) > 7 * 864e5;
+  rem.classList.toggle('hidden', !(hasData && old));
+  rem.innerHTML = `${icon('download', 14)} ${lb ? 'Резервная копия старше 7 дней' : 'Резервная копия ещё не делалась'}`;
+}
+function renderAll() {
+  if (!db) return;
+  if (!TABS.some(t => t[0] === ui.tab)) ui.tab = 'deadlines';
+  renderHeader();
+  $$('.tab-panel').forEach(p => p.classList.toggle('hidden', p.id !== 'tab-' + ui.tab));
+  ({ deadlines: renderDeadlines, requests: renderRequests, employees: renderEmployees, stats: renderStats, history: renderHistory, settings: renderSettings })[ui.tab]();
+  updateTopbarHeight();
+}
+function switchTab(id) {
+  ui.tab = id; saveUI(); renderAll(); window.scrollTo(0, 0);
+}
+function updateTopbarHeight() { document.documentElement.style.setProperty('--topbar-h', $('#topbar').offsetHeight + 'px'); }
+
+/* =========================================================
+   7. ВКЛАДКА «СРОКИ»
+   ========================================================= */
+function renderDeadlines() {
+  const el = $('#tab-deadlines');
+  const t = todayISO();
+  const all = db.requests.map(r => ({ r, i: reqInfo(r) }));
+  const act = all.filter(x => isActive(x.r));
+  const cnt = {
+    active: act.length,
+    today: act.filter(x => x.i.status === 'today').length,
+    overdue: act.filter(x => x.i.status === 'overdue').length,
+    donemonth: all.filter(x => x.r.completedAt && !x.r.cancelled && x.r.completedAt.slice(0, 7) === t.slice(0, 7)).length
+  };
+  const card = (key, label, ic, value, cls) =>
+    `<button class="card counter-card ${cls}" data-action="card-filter" data-filter="${key}" title="Открыть список заявок">
+      <span class="label">${icon(ic, 16)} ${label}</span><span class="value">${value}</span></button>`;
+
+  let html = `<div class="counters">
+    ${card('active', 'В работе', 'list', cnt.active, '')}
+    ${card('today', 'Срок сегодня', 'clock', cnt.today, cnt.today ? 'warm' : '')}
+    ${card('overdue', 'Просрочено', 'flame', cnt.overdue, cnt.overdue ? 'hot' : '')}
+    ${card('donemonth', 'Исполнено за этот месяц', 'check', cnt.donemonth, 'good')}
+  </div>
+  <div class="section-head"><h2>Текущие сроки по кабинетам</h2>
+    <div class="row-inline"><span class="muted" style="font-size:13.5px">Показать:</span>
+      <div class="seg" role="group"><button class="${ui.onlyHot ? '' : 'on'}" data-action="hot" data-v="0">все</button><button class="${ui.onlyHot ? 'on' : ''}" data-action="hot" data-v="1">только просроченные и сегодняшние</button></div>
+    </div></div>`;
+
+  if (!db.employees.some(e => !e.archived)) {
+    html += `<div class="card empty"><b>Сотрудников пока нет</b>Добавьте сотрудников кабинетов 103 и 104, чтобы закреплять за ними заявки.<br><button class="btn primary" data-action="tab" data-tab="employees">Перейти к сотрудникам</button></div>`;
+    el.innerHTML = html; return;
+  }
+  html += '<div class="rooms">';
+  for (const room of ['103', '104']) {
+    const roomAct = act.filter(x => x.r.room === room);
+    const roomOver = roomAct.filter(x => x.i.status === 'overdue').length;
+    const emps = db.employees.filter(e => (!e.archived && e.room === room) || roomAct.some(x => x.r.employeeId === e.id)).sort(byName);
+    html += `<div class="card room-col"><div class="room-head"><h3>Кабинет ${room}</h3>
+      <div class="mini"><span title="Активных заявок">активных: ${roomAct.length}</span><span class="${roomOver ? 'bad' : ''}" title="Просроченных">просрочено: ${roomOver}</span></div></div>`;
+    if (!emps.length) html += `<div class="empty" style="padding:20px">В кабинете нет сотрудников</div>`;
+    for (const e of emps) {
+      let list = roomAct.filter(x => x.r.employeeId === e.id);
+      const total = list.length;
+      if (ui.onlyHot) list = list.filter(x => x.i.status === 'overdue' || x.i.status === 'today');
+      list.sort((a, b) => a.r.deadline.localeCompare(b.r.deadline) || String(a.r.number).localeCompare(String(b.r.number), 'ru', { numeric: true }));
+      html += `<div class="emp-block ${list.length ? '' : 'collapsed'}"><div class="emp-head"><span class="avatar">${esc(initials(e))}</span>
+        <div><b>${esc(e.shortName)}</b> ${e.position ? `<span class="muted">· ${esc(e.position)}</span>` : ''}</div>
+        ${list.length ? `<span class="pill">${total} ${plural(total, ['активная', 'активные', 'активных'])}</span>` : `<span class="none">${total && ui.onlyHot ? 'нет просроченных и сегодняшних' : 'нет активных заявок'}</span>`}</div>`;
+      for (const { r, i } of list) {
+        html += `<div class="dl-row st-${i.status}" data-open="${r.id}" tabindex="0">
+          <span class="ind"></span><span class="no" title="№${esc(r.number)}">№${esc(r.number)}</span>
+          <span class="desc" title="${esc(r.description)}">${esc(r.description)}<small>до ${fmtShort(r.deadline)}${r.deadlineManual ? ' ✎' : ''} · ${esc((typeById(r.typeId) || {}).name || '')}</small></span>
+          <span class="left">${leftText(i)}</span>
+          <span class="act"><button class="btn success sm" data-action="complete" data-id="${r.id}" title="Отметить исполненной">${icon('check', 15)} Исполнено</button></span>
+        </div>`;
+      }
+      html += '</div>';
+    }
+    html += '</div>';
+  }
+  html += '</div>';
+  if (!db.requests.length) html += `<div class="card empty" style="margin-top:20px"><b>Заявок пока нет — создайте первую</b><button class="btn primary" data-action="new-request">+ Новая заявка</button></div>`;
+  el.innerHTML = html;
+}
+
+/* =========================================================
+   8. ВКЛАДКА «ЗАЯВКИ»
+   ========================================================= */
+const reqFilter = { q: '', room: '', emp: '', statuses: [], type: '', from: '', to: '', doneMonth: false };
+let reqSort = { key: 'default', dir: 1 };
+let reqPage = 1;
+const PAGE = 50;
+
+function empSelectOptions(selected, { withArchived = true } = {}) {
+  return ['103', '104'].map(room => {
+    const list = db.employees.filter(e => e.room === room && (withArchived || !e.archived)).sort(byName);
+    if (!list.length) return '';
+    return `<optgroup label="Кабинет ${room}">${list.map(e => `<option value="${e.id}" ${e.id === selected ? 'selected' : ''}>${esc(e.shortName)}${e.archived ? ' (архив)' : ''}</option>`).join('')}</optgroup>`;
+  }).join('');
+}
+function renderRequests() {
+  const f = reqFilter;
+  $('#tab-requests').innerHTML = `
+  <div class="section-head"><h2>Все заявки</h2><button class="btn primary" data-action="new-request">+ Новая заявка</button></div>
+  <div class="card filters">
+    <label class="search">${icon('search', 17)}<input type="search" id="f-q" placeholder="Поиск по № и описанию (клавиша /)" value="${esc(f.q)}" aria-label="Поиск"></label>
+    <select id="f-room" aria-label="Кабинет"><option value="">Все кабинеты</option><option value="103" ${f.room === '103' ? 'selected' : ''}>Каб. 103</option><option value="104" ${f.room === '104' ? 'selected' : ''}>Каб. 104</option></select>
+    <select id="f-emp" aria-label="Сотрудник"><option value="">Все сотрудники</option>${empSelectOptions(f.emp)}</select>
+    <select id="f-type" aria-label="Тип"><option value="">Все типы</option>${db.settings.requestTypes.map(t => `<option value="${t.id}" ${f.type === t.id ? 'selected' : ''}>${esc(t.name)}</option>`).join('')}</select>
+    <span class="range">Регистрация с <input type="date" id="f-from" value="${f.from}"> по <input type="date" id="f-to" value="${f.to}"></span>
+    <button class="btn ghost" data-action="reset-filters">Сбросить</button>
+    <div class="chips"><span class="muted" style="font-size:13px;align-self:center">Статус:</span>
+      ${Object.keys(STATUS).map(s => `<button class="chip st-${s} ${f.statuses.includes(s) ? 'on' : ''}" aria-pressed="${f.statuses.includes(s)}" data-action="status-chip" data-status="${s}"><span class="dot"></span>${STATUS[s]}</button>`).join('')}
+      ${f.doneMonth ? `<button class="chip on" data-action="clear-donemonth" title="Убрать условие">Исполнено в этом месяце ${icon('x', 13)}</button>` : ''}
+    </div>
+  </div>
+  <div class="card" id="req-results"></div>`;
+  const bind = (id, ev, fn) => $('#' + id).addEventListener(ev, e => { fn(e.target.value); reqPage = 1; renderReqResults(); });
+  bind('f-q', 'input', v => f.q = v);
+  bind('f-room', 'change', v => f.room = v);
+  bind('f-emp', 'change', v => f.emp = v);
+  bind('f-type', 'change', v => f.type = v);
+  bind('f-from', 'change', v => f.from = v);
+  bind('f-to', 'change', v => f.to = v);
+  renderReqResults();
+}
+function filteredRequests() {
+  const f = reqFilter, q = f.q.trim().toLowerCase(), month = todayISO().slice(0, 7);
+  return db.requests.map(r => ({ r, i: reqInfo(r) })).filter(({ r, i }) => {
+    if (q && !(String(r.number).toLowerCase().includes(q) || r.description.toLowerCase().includes(q))) return false;
+    if (f.room && r.room !== f.room) return false;
+    if (f.emp && r.employeeId !== f.emp) return false;
+    if (f.type && r.typeId !== f.type) return false;
+    if (f.statuses.length && !f.statuses.includes(i.status)) return false;
+    if (f.from && r.registeredAt < f.from) return false;
+    if (f.to && r.registeredAt > f.to) return false;
+    if (f.doneMonth && !(r.completedAt && r.completedAt.slice(0, 7) === month)) return false;
+    return true;
+  });
+}
+function sortRequests(rows) {
+  const { key, dir } = reqSort;
+  if (key === 'default') return rows.sort((a, b) => (RANK[a.i.status] - RANK[b.i.status]) || a.r.deadline.localeCompare(b.r.deadline));
+  const val = x => ({
+    number: x.r.number, registeredAt: x.r.registeredAt, description: x.r.description.toLowerCase(),
+    type: (typeById(x.r.typeId) || {}).name || '', employee: empName(x.r.employeeId), room: x.r.room,
+    deadline: x.r.deadline, completedAt: x.r.completedAt || '', delay: x.i.delay || 0, status: RANK[x.i.status]
+  })[key];
+  return rows.sort((a, b) => {
+    const va = val(a), vb = val(b);
+    const c = typeof va === 'number' && typeof vb === 'number' ? va - vb : String(va).localeCompare(String(vb), 'ru', { numeric: true });
+    return c * dir || a.r.deadline.localeCompare(b.r.deadline);
+  });
+}
+const REQ_COLS = [['number', '№'], ['registeredAt', 'Дата рег.'], ['description', 'Описание'], ['type', 'Тип'], ['employee', 'Исполнитель'], ['room', 'Каб.'], ['deadline', 'Срок'], ['completedAt', 'Дата исп.'], ['delay', 'Задержка, р.д.'], ['status', 'Статус']];
+
+function rowActions(r, fromCard) {
+  const c = fromCard ? ' data-card="1"' : '';
+  const b = (a, ic, title, cls = '') => fromCard
+    ? `<button class="btn ${cls || 'ghost'} sm" data-action="${a}" data-id="${r.id}"${c}>${icon(ic, 15)} ${title}</button>`
+    : `<button class="icon-btn ${cls}" data-action="${a}" data-id="${r.id}" title="${title}" aria-label="${title}">${icon(ic, 17)}</button>`;
+  let h = '';
+  if (isActive(r)) h += b('complete', 'check', 'Исполнено', fromCard ? 'success' : '');
+  else h += b('reopen', 'undo', 'Вернуть в работу');
+  h += b('edit', 'edit', 'Редактировать');
+  if (isActive(r)) h += b('cancel', 'ban', 'Отменить заявку');
+  h += b('delete', 'trash', 'Удалить', 'danger');
+  return h;
+}
+function renderReqResults() {
+  const box = $('#req-results'); if (!box) return;
+  const rows = sortRequests(filteredRequests());
+  if (!db.requests.length) {
+    box.innerHTML = `<div class="empty"><b>Заявок пока нет — создайте первую</b>Нажмите кнопку ниже или клавишу N.<br><button class="btn primary" data-action="new-request">+ Новая заявка</button></div>`;
+    return;
+  }
+  const pages = Math.max(1, Math.ceil(rows.length / PAGE));
+  if (reqPage > pages) reqPage = pages;
+  const slice = rows.slice((reqPage - 1) * PAGE, reqPage * PAGE);
+  const th = REQ_COLS.map(([k, n]) => `<th class="sortable" data-action="sort" data-key="${k}" aria-sort="${reqSort.key === k ? (reqSort.dir > 0 ? 'ascending' : 'descending') : 'none'}">${n}${reqSort.key === k ? `<span class="arrow">${reqSort.dir > 0 ? '▲' : '▼'}</span>` : ''}</th>`).join('');
+  const body = slice.map(({ r, i }) => `<tr class="${i.status === 'overdue' ? 'row-overdue' : ''} ${i.status === 'cancelled' ? 'row-cancelled' : ''}" data-open="${r.id}" tabindex="0">
+      <td class="no">${esc(r.number)}</td>
+      <td class="tnum">${fmtDate(r.registeredAt)}</td>
+      <td class="desc" title="${esc(r.description)}">${esc(r.description)}</td>
+      <td class="type" title="${esc((typeById(r.typeId) || {}).name || '')}">${esc((typeById(r.typeId) || {}).name || '—')}</td>
+      <td class="emp">${esc(empName(r.employeeId))}</td>
+      <td class="tnum">${r.room}</td>
+      <td class="tnum" style="white-space:nowrap">${fmtDate(r.deadline)}${r.deadlineManual ? `<span class="manual-mark" title="Срок изменён вручную">${icon('edit', 13)}</span>` : ''}</td>
+      <td class="tnum">${fmtDate(r.completedAt)}</td>
+      <td class="tnum ${i.delay > 0 ? 'delay-pos' : ''}">${i.status === 'cancelled' ? '—' : i.delay}</td>
+      <td>${badge(i)}</td>
+      <td class="actions">${rowActions(r)}</td></tr>`).join('');
+  let pager = '';
+  if (pages > 1) {
+    pager = '<div class="pager">';
+    pager += `<button data-action="page" data-p="${reqPage - 1}" ${reqPage === 1 ? 'disabled' : ''} aria-label="Назад">‹</button>`;
+    for (let p = 1; p <= pages; p++) {
+      if (pages > 9 && p > 2 && p < pages - 1 && Math.abs(p - reqPage) > 1) { if (p === 3 || p === pages - 2) pager += '<span class="muted">…</span>'; continue; }
+      pager += `<button class="${p === reqPage ? 'on' : ''}" data-action="page" data-p="${p}">${p}</button>`;
+    }
+    pager += `<button data-action="page" data-p="${reqPage + 1}" ${reqPage === pages ? 'disabled' : ''} aria-label="Вперёд">›</button></div>`;
+  }
+  box.innerHTML = `${rows.length ? `<div class="table-wrap"><table><thead><tr>${th}<th style="text-align:right">Действия</th></tr></thead><tbody>${body}</tbody></table></div>`
+    : `<div class="empty"><b>Ничего не найдено</b>Измените условия поиска или сбросьте фильтры.<br><button class="btn ghost" data-action="reset-filters">Сбросить фильтры</button></div>`}
+    <div class="table-foot"><span class="muted">Найдено: <b class="tnum" style="color:var(--text)">${rows.length}</b> ${plural(rows.length, ['заявка', 'заявки', 'заявок'])}${pages > 1 ? ` · стр. ${reqPage} из ${pages}` : ''}</span>
+    ${pager}
+    <button class="btn ghost" data-action="export-csv" ${rows.length ? '' : 'disabled'}>${icon('download', 16)} Экспорт в CSV</button></div>`;
+}
+function exportRequestsCSV() {
+  const rows = sortRequests(filteredRequests());
+  const data = [['№', 'Дата регистрации', 'Описание', 'Тип', 'Исполнитель', 'Кабинет', 'Срок', 'Срок изменён вручную', 'Дата исполнения', 'Задержка, р.д.', 'Статус']];
+  rows.forEach(({ r, i }) => data.push([r.number, fmtDate(r.registeredAt), r.description, (typeById(r.typeId) || {}).name || '', (empById(r.employeeId) || {}).fullName || '', r.room, fmtDate(r.deadline), r.deadlineManual ? 'да' : '', r.completedAt ? fmtDate(r.completedAt) : '', i.status === 'cancelled' ? '' : i.delay, STATUS[i.status]]));
+  downloadCSV(`zayavki-${todayISO()}.csv`, data);
+}
+function downloadCSV(name, rows) {
+  const csv = '﻿' + rows.map(r => r.map(c => {
+    const s = String(c == null ? '' : c);
+    return /[;"\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+  }).join(';')).join('\r\n');
+  downloadBlob(name, csv, 'text/csv;charset=utf-8');
+}
+function downloadBlob(name, content, type) {
+  const url = URL.createObjectURL(new Blob([content], { type }));
+  const a = document.createElement('a');
+  a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1500);
+}
+
+/* =========================================================
+   9. ФОРМА ЗАЯВКИ, КАРТОЧКА И ДЕЙСТВИЯ С ЗАЯВКАМИ
+   ========================================================= */
+function openRequestForm(id) {
+  if (!db.employees.some(e => !e.archived)) {
+    toast('Сначала добавьте хотя бы одного сотрудника');
+    switchTab('employees'); return;
+  }
+  const ed = id ? reqById(id) : null;
+  const t = todayISO();
+  const types = db.settings.requestTypes.filter(x => x.active || (ed && x.id === ed.typeId));
+  const firstType = types.find(x => x.normDays != null) || types[0];
+  const v0 = ed ? clone(ed) : { number: nextAutoNumber(), registeredAt: t, typeId: firstType ? firstType.id : '', description: '', employeeId: '', deadline: '' };
+  const empOpts = ['103', '104'].map(room => {
+    const list = db.employees.filter(e => e.room === room && (!e.archived || (ed && e.id === ed.employeeId))).sort(byName);
+    return list.length ? `<optgroup label="Кабинет ${room}">${list.map(e => `<option value="${e.id}" ${e.id === v0.employeeId ? 'selected' : ''}>${esc(e.shortName)}${e.position ? ' — ' + esc(e.position) : ''}${e.archived ? ' (архив)' : ''}</option>`).join('')}</optgroup>` : '';
+  }).join('');
+  const body = `<div class="form-grid">
+    <label class="field"><span>№ заявки *</span><input id="rf-number" value="${esc(v0.number)}" maxlength="40" autocomplete="off"><em class="err" data-err="number"></em></label>
+    <label class="field"><span>Дата регистрации *</span><input type="date" id="rf-reg" value="${v0.registeredAt}"><em class="err" data-err="reg"></em></label>
+    <label class="field span2"><span>Тип заявки *</span><select id="rf-type">${types.map(x => `<option value="${x.id}" ${x.id === v0.typeId ? 'selected' : ''}>${esc(typeLabel(x))}${x.active ? '' : ' — скрыт'}</option>`).join('')}<option value="__custom__">✎ Другой тип — ввести вручную…</option></select><em class="err" data-err="type"></em></label>
+    <div class="span2 custom-type hidden" id="rf-custom">
+      <label class="field"><span>Название нового типа *</span><input id="rf-cname" maxlength="80" placeholder="Например: Проверка расчёта НМЦК" autocomplete="off"><em class="err" data-err="cname"></em></label>
+      <label class="field"><span>Норматив, р.д.</span><input type="number" id="rf-cnorm" min="0" max="365" placeholder="не задан"></label>
+      <small class="muted">Тип будет добавлен в справочник (Настройки → Типы заявок). Без норматива срок устанавливается вручную.</small>
+    </div>
+    <label class="field span2"><span>Описание *</span><textarea id="rf-desc" rows="3" maxlength="1000" placeholder="Кратко опишите суть заявки">${esc(v0.description)}</textarea><small class="counter" id="rf-count"></small><em class="err" data-err="desc"></em></label>
+    <label class="field"><span>Исполнитель *</span><select id="rf-emp"><option value="">— выберите —</option>${empOpts}</select><em class="err" data-err="emp"></em></label>
+    <label class="field"><span>Кабинет</span><input id="rf-room" readonly tabindex="-1"></label>
+    <label class="field"><span>Срок исполнения *</span><input type="date" id="rf-dl" value="${v0.deadline}"><em class="err" data-err="dl"></em></label>
+    <label class="field"><span>Срок в рабочих днях</span><input type="number" id="rf-days" min="0" max="365" placeholder="от даты регистрации"></label>
+    <div class="span2 dl-set"><span class="muted">Установить срок:</span>${[1, 2, 3, 5, 10].map(n => `<button type="button" class="chip" data-days="${n}">+${n} р.д.</button>`).join('')}</div>
+    <div class="field dl-hint span2" id="rf-hint"></div>
+    ${ed && ed.completedAt ? `<label class="field"><span>Дата исполнения</span><input type="date" id="rf-done" value="${ed.completedAt}" min="${ed.registeredAt}" max="${t}"><em class="err" data-err="done"></em></label><div></div>` : ''}
+    <div class="span2 warn-box" id="rf-warn"></div>
+  </div>`;
+  const m = openModal({
+    title: ed ? `Редактирование заявки №${ed.number}` : 'Новая заявка', body, size: 'lg',
+    footer: `<span class="muted spacer" style="font-size:12.5px">Enter — сохранить · Esc — отмена</span><button class="btn ghost" data-close>Отмена</button><button class="btn primary" id="rf-save">Сохранить</button>`,
+    isDirty: () => snapshot() !== initial,
+    onSubmit: () => submit()
+  });
+  const box = m.box;
+  const F = s => $('#rf-' + s, box);
+  let manual = ed ? !!ed.deadlineManual : false;
+  const isCustom = () => F('type').value === '__custom__';
+  /** Текущий тип: из справочника или введённый вручную (ещё не сохранён) */
+  const curType = () => {
+    if (!isCustom()) return typeById(F('type').value);
+    const raw = F('cnorm').value.trim(), n = parseInt(raw, 10);
+    return { id: null, name: F('cname').value.trim(), normDays: raw === '' || isNaN(n) ? null : Math.max(0, Math.min(365, n)) };
+  };
+  /** Число рабочих дней от даты регистрации («день 0») до срока */
+  const daysFromReg = (reg, dl) => { const base = addWorkdays(reg, 0); return dl >= base ? countWorkdays(base, dl) : 0; };
+  const normDl = () => { const tp = curType(); return tp && tp.normDays != null && isISO(F('reg').value) ? addWorkdays(F('reg').value, tp.normDays) : null; };
+  const snapshot = () => JSON.stringify($$('input,select,textarea', box).map(x => x.value));
+
+  function updateRoom() { const e = empById(F('emp').value); F('room').value = e ? `Кабинет ${e.room}` : ''; }
+  function updateCount() { F('count').textContent = `${F('desc').value.length} / 1000`; }
+  function recalc() {
+    const nd = normDl();
+    if (nd && !manual) F('dl').value = nd;
+    if (!nd) manual = false;
+    updateHint();
+  }
+  function updateHint() {
+    const nd = normDl(), tp = curType(), dl = F('dl').value;
+    let h = '';
+    if (tp && tp.normDays != null && nd) {
+      h = `<span>Норматив: ${tp.normDays} р.д. → ${fmtDate(nd)}</span>`;
+      if (manual && dl !== nd) h += `<span class="manual">${icon('edit', 14)} изменён вручную</span><button type="button" class="btn ghost sm" id="rf-revert">Вернуть по нормативу</button>`;
+    } else h = `<span>${icon('edit', 14)} Для этого типа срок устанавливается вручную — выберите дату, введите число рабочих дней или нажмите кнопку выше</span>`;
+    F('hint').innerHTML = h;
+    // Синхронизация поля «Срок в рабочих днях»
+    if (document.activeElement !== F('days')) F('days').value = isISO(dl) && isISO(F('reg').value) && dl >= F('reg').value ? daysFromReg(F('reg').value, dl) : '';
+    $$('[data-days]', box).forEach(b => b.classList.toggle('on', F('days').value !== '' && +b.dataset.days === +F('days').value));
+    // Предупреждения
+    let w = '';
+    if (dl && F('reg').value && dl < F('reg').value) w = `<div class="error-box">Срок исполнения не может быть раньше даты регистрации.</div>`;
+    else if (dl && isISO(dl) && !isWorkday(dl)) w = `<div class="warn">${icon('alert', 16)} Срок выпадает на нерабочий день (${dow(dl)}, ${fmtDate(dl)}).</div>`;
+    F('warn').innerHTML = w;
+  }
+  F('type').addEventListener('change', () => {
+    F('custom').classList.toggle('hidden', !isCustom());
+    if (isCustom()) setTimeout(() => F('cname').focus(), 0);
+    if (!ed) manual = false;
+    recalc();
+  });
+  F('cnorm').addEventListener('input', () => { manual = false; recalc(); });
+  /** Установить срок по количеству рабочих дней */
+  function setDays(n) {
+    if (!isISO(F('reg').value) || !(n >= 0)) return;
+    F('dl').value = addWorkdays(F('reg').value, n);
+    const nd = normDl(); manual = !!nd && F('dl').value !== nd;
+    updateHint();
+  }
+  F('days').addEventListener('input', () => { const n = parseInt(F('days').value, 10); if (!isNaN(n)) setDays(Math.min(365, n)); });
+  F('days').addEventListener('blur', updateHint);
+  box.addEventListener('click', e => { const b = e.target.closest('[data-days]'); if (b) { F('days').value = b.dataset.days; setDays(+b.dataset.days); } });
+  F('reg').addEventListener('change', recalc);
+  F('dl').addEventListener('input', () => { const nd = normDl(); manual = !!nd && F('dl').value !== nd; updateHint(); });
+  F('emp').addEventListener('change', updateRoom);
+  F('desc').addEventListener('input', updateCount);
+  box.addEventListener('click', e => { if (e.target.closest('#rf-revert')) { manual = false; recalc(); } });
+  $('#rf-save', box).addEventListener('click', () => submit());
+  if (!ed) recalc(); else updateHint();
+  updateRoom(); updateCount();
+  const initial = snapshot();
+
+  function submit() {
+    $$('.err', box).forEach(x => x.textContent = '');
+    const v = {
+      number: F('number').value.trim(), registeredAt: F('reg').value, typeId: F('type').value,
+      description: F('desc').value.trim(), employeeId: F('emp').value, deadline: F('dl').value,
+      completedAt: F('done') ? F('done').value : (ed ? ed.completedAt : null)
+    };
+    const errs = {};
+    if (!v.number) errs.number = 'Укажите номер';
+    else if (db.requests.some(r => r.number === v.number && (!ed || r.id !== ed.id))) errs.number = 'Заявка с таким номером уже есть';
+    if (!isISO(v.registeredAt)) errs.reg = 'Укажите дату регистрации';
+    else if (v.registeredAt > t && !ed) errs.reg = 'Дата регистрации не может быть в будущем';
+    if (!v.typeId) errs.type = 'Выберите тип';
+    if (isCustom() && !F('cname').value.trim()) errs.cname = 'Введите название типа';
+    if (!v.description) errs.desc = 'Заполните описание';
+    if (!v.employeeId) errs.emp = 'Выберите исполнителя';
+    if (!isISO(v.deadline)) errs.dl = 'Укажите срок исполнения';
+    else if (isISO(v.registeredAt) && v.deadline < v.registeredAt) errs.dl = 'Срок раньше даты регистрации';
+    if (F('done')) {
+      if (!isISO(v.completedAt)) errs.done = 'Укажите дату исполнения';
+      else if (v.completedAt < v.registeredAt) errs.done = 'Не раньше даты регистрации';
+      else if (v.completedAt > t) errs.done = 'Не позже сегодняшнего дня';
+    }
+    const keys = Object.keys(errs);
+    if (keys.length) {
+      keys.forEach(k => { const e = $(`[data-err="${k}"]`, box); if (e) e.textContent = errs[k]; });
+      const firstField = { number: 'number', reg: 'reg', type: 'type', cname: 'cname', desc: 'desc', emp: 'emp', dl: 'dl', done: 'done' }[keys[0]];
+      if (F(firstField)) F(firstField).focus();
+      return;
+    }
+    const nd = normDl();
+    // Тип, введённый вручную: использовать совпадающий из справочника или добавить новый
+    if (isCustom()) {
+      const ct = curType();
+      const ex = db.settings.requestTypes.find(x => x.name.toLowerCase() === ct.name.toLowerCase());
+      if (ex) { ex.active = true; v.typeId = ex.id; }
+      else {
+        const nt = { id: uid(), name: ct.name, normDays: ct.normDays, active: true };
+        db.settings.requestTypes.push(nt);
+        v.typeId = nt.id;
+        log('settings_changed', { details: `Добавлен тип заявки «${nt.name}» (${nt.normDays == null ? 'без норматива' : nt.normDays + ' р.д.'}) при оформлении заявки №${v.number}` });
+      }
+    }
+    const isManual = !!nd && v.deadline !== nd;
+    const now = new Date().toISOString();
+    const emp = empById(v.employeeId);
+    if (!ed) {
+      const r = { id: uid(), number: v.number, description: v.description, typeId: v.typeId, employeeId: v.employeeId, room: emp.room, registeredAt: v.registeredAt, deadline: v.deadline, deadlineManual: isManual, completedAt: null, cancelled: false, createdAt: now, updatedAt: now };
+      db.requests.push(r);
+      bumpNumber(r.number);
+      logReq('created', r, `Создана заявка №${r.number}: исполнитель ${emp.shortName}, каб. ${emp.room}, срок до ${fmtDate(r.deadline)}`);
+      if (isManual) logReq('deadline_changed', r, `Срок заявки №${r.number} изменён вручную: ${fmtShort(nd)} → ${fmtShort(r.deadline)}`, { field: 'deadline', from: nd, to: r.deadline });
+      m.close(true); commit(); toast(`Заявка №${r.number} создана`);
+    } else {
+      const r = ed;
+      const oldNum = r.number;
+      const changed = [];
+      if (v.number !== r.number) changed.push(`номер ${r.number} → ${v.number}`);
+      if (v.registeredAt !== r.registeredAt) changed.push(`дата регистрации ${fmtShort(r.registeredAt)} → ${fmtShort(v.registeredAt)}`);
+      if (v.typeId !== r.typeId) changed.push(`тип «${(typeById(r.typeId) || {}).name || ''}» → «${(typeById(v.typeId) || {}).name || ''}»`);
+      if (v.description !== r.description) changed.push('описание');
+      if (r.completedAt && v.completedAt !== r.completedAt) changed.push(`дата исполнения ${fmtShort(r.completedAt)} → ${fmtShort(v.completedAt)}`);
+      const dlFrom = r.deadline, empFrom = r.employeeId;
+      Object.assign(r, { number: v.number, registeredAt: v.registeredAt, typeId: v.typeId, description: v.description, updatedAt: now });
+      if (r.completedAt) r.completedAt = v.completedAt;
+      if (changed.length) logReq('edited', r, `Заявка №${r.number} изменена: ${changed.join(', ')}`, null);
+      if (v.deadline !== dlFrom) {
+        r.deadline = v.deadline;
+        logReq('deadline_changed', r, `Срок заявки №${r.number} изменён: ${fmtShort(dlFrom)} → ${fmtShort(v.deadline)}${isManual ? ' (вручную)' : ''}`, { field: 'deadline', from: dlFrom, to: v.deadline });
+      }
+      r.deadlineManual = isManual;
+      if (v.employeeId !== empFrom) {
+        const fromName = empName(empFrom);
+        r.employeeId = v.employeeId; r.room = emp.room;
+        logReq('reassigned', r, `Заявка №${r.number} передана: ${fromName} → ${emp.shortName} (каб. ${emp.room})`, { field: 'employeeId', from: empFrom, to: v.employeeId });
+      }
+      bumpNumber(r.number);
+      m.close(true); commit(); toast(`Заявка №${r.number} сохранена`);
+      void oldNum;
+    }
+  }
+}
+
+function openRequestCard(id) {
+  const r = reqById(id);
+  if (!r) { toast('Заявка не найдена (возможно, удалена)'); return; }
+  const i = reqInfo(r), tp = typeById(r.typeId), e = empById(r.employeeId);
+  const hist = db.history.filter(h => h.requestId === id).sort((a, b) => b.timestamp.localeCompare(a.timestamp));
+  let left = leftText(i);
+  if (i.status === 'late') left = `задержка ${wdFull(i.delay)}`;
+  if (i.status === 'done') left = 'исполнена в срок';
+  const body = `
+    <div class="row-inline" style="margin-bottom:14px">${badge(i)} <b style="color:var(--${i.status === 'overdue' ? 'danger' : 'text'})">${left}</b></div>
+    <div class="card-desc">${esc(r.description)}</div>
+    <dl class="kv">
+      <dt>Тип заявки</dt><dd>${esc(typeLabel(tp))}</dd>
+      <dt>Исполнитель</dt><dd>${e ? esc(e.fullName) + (e.archived ? ' <span class="muted">(архив)</span>' : '') : '—'}</dd>
+      <dt>Кабинет</dt><dd>${r.room}</dd>
+      <dt>Дата регистрации</dt><dd class="tnum">${fmtDate(r.registeredAt)}</dd>
+      <dt>Срок исполнения</dt><dd class="tnum">${fmtDate(r.deadline)} <span class="muted">(${dow(r.deadline)})</span>${r.deadlineManual ? ` <span class="manual-mark">${icon('edit', 13)} изменён вручную</span>` : ''}</dd>
+      <dt>Дата исполнения</dt><dd class="tnum">${fmtDate(r.completedAt)}</dd>
+      <dt>Задержка</dt><dd class="tnum ${i.delay > 0 ? 'delay-pos' : ''}">${i.status === 'cancelled' ? '—' : wdFull(i.delay)}</dd>
+    </dl>
+    <h3 style="font-size:15px;margin-bottom:8px">История изменений</h3>
+    ${hist.length ? `<ul class="mini-hist">${hist.map(h => `<li><time>${fmtDateTime(h.timestamp)}</time><span>${esc(histPlain(h))}</span></li>`).join('')}</ul>` : '<p class="muted">Записей нет</p>'}`;
+  openModal({ title: `Заявка №${r.number}`, body, size: 'lg', footer: rowActions(r, true) });
+}
+
+function actComplete(id) {
+  const r = reqById(id); if (!r) return;
+  const t = todayISO();
+  const m = openModal({
+    title: `Исполнение заявки №${r.number}`, size: 'sm',
+    body: `<p class="muted" style="font-size:13.5px">${esc(r.description.slice(0, 140))}${r.description.length > 140 ? '…' : ''}</p>
+      <label class="field"><span>Дата исполнения</span><input type="date" id="c-date" value="${t}" min="${r.registeredAt}" max="${t}"><em class="err" id="c-err"></em></label>
+      <p id="c-hint" style="margin:10px 0 0;font-size:14px"></p>`,
+    footer: `<button class="btn ghost" data-close>Отмена</button><button class="btn primary" id="c-ok">${icon('check', 16)} Отметить исполненной</button>`,
+    onSubmit: () => go()
+  });
+  const inp = $('#c-date', m.box);
+  const hint = () => {
+    const v = inp.value;
+    if (!isISO(v)) { $('#c-hint', m.box).textContent = ''; return; }
+    const d = v > r.deadline ? countWorkdays(r.deadline, v) : 0;
+    $('#c-hint', m.box).innerHTML = `Срок: до ${fmtDate(r.deadline)} · ${d > 0 ? `<b class="delay-pos">задержка ${wdFull(d)}</b>` : '<b style="color:var(--success)">в срок</b>'}`;
+  };
+  inp.addEventListener('input', hint); hint();
+  $('#c-ok', m.box).addEventListener('click', go);
+  function go() {
+    const v = inp.value;
+    if (!isISO(v)) { $('#c-err', m.box).textContent = 'Укажите дату'; return; }
+    if (v < r.registeredAt) { $('#c-err', m.box).textContent = `Не раньше даты регистрации (${fmtDate(r.registeredAt)})`; return; }
+    if (v > t) { $('#c-err', m.box).textContent = 'Не позже сегодняшнего дня'; return; }
+    const d = v > r.deadline ? countWorkdays(r.deadline, v) : 0;
+    m.close(true);
+    withUndo(`Заявка №${r.number} исполнена${d ? `, задержка ${d} р.д.` : ' в срок'}`, () => {
+      const rr = reqById(id);
+      rr.completedAt = v; rr.updatedAt = new Date().toISOString();
+      logReq('completed', rr, `Заявка №${rr.number} отмечена исполненной ${fmtDate(v)}${d ? `, задержка ${d} р.д.` : ', в срок'}`);
+    });
+  }
+}
+function actReopen(id) {
+  const r = reqById(id); if (!r) return;
+  const wasCancelled = r.cancelled;
+  withUndo(`Заявка №${r.number} возвращена в работу`, () => {
+    const rr = reqById(id);
+    rr.completedAt = null; rr.cancelled = false; rr.updatedAt = new Date().toISOString();
+    logReq('reopened', rr, `Заявка №${rr.number} возвращена в работу${wasCancelled ? ' (отмена снята)' : ''}`);
+  });
+}
+async function actCancel(id) {
+  const r = reqById(id); if (!r) return;
+  if (!await confirmDialog({ title: 'Отмена заявки', text: `Отменить заявку <b>№${esc(r.number)}</b>? Она перестанет учитываться в сроках. Вернуть её можно кнопкой «Вернуть в работу».`, ok: 'Отменить заявку', cancel: 'Не отменять', danger: true })) return;
+  withUndo(`Заявка №${r.number} отменена`, () => {
+    const rr = reqById(id);
+    rr.cancelled = true; rr.updatedAt = new Date().toISOString();
+    logReq('cancelled', rr, `Заявка №${rr.number} отменена`);
+  });
+}
+async function actDelete(id) {
+  const r = reqById(id); if (!r) return;
+  if (!await confirmDialog({ title: 'Удаление заявки', text: `Удалить заявку <b>№${esc(r.number)}</b> безвозвратно? Запись об удалении останется в истории.`, ok: 'Удалить', danger: true })) return;
+  withUndo(`Заявка №${r.number} удалена`, () => {
+    const rr = reqById(id);
+    logReq('deleted', rr, `Заявка №${rr.number} удалена (исполнитель ${empName(rr.employeeId)}, срок ${fmtDate(rr.deadline)})`);
+    db.requests = db.requests.filter(x => x.id !== id);
+  });
+}
+
+/* =========================================================
+   10. ВКЛАДКА «СОТРУДНИКИ»
+   ========================================================= */
+function empStats(id) {
+  let active = 0, overdue = 0, done = 0, onTime = 0, total = 0;
+  db.requests.forEach(r => {
+    if (r.employeeId !== id) return;
+    total++;
+    const i = reqInfo(r);
+    if (isActive(r)) { active++; if (i.status === 'overdue') overdue++; }
+    else if (r.completedAt && !r.cancelled) { done++; if (i.status === 'done') onTime++; }
+  });
+  return { total, active, overdue, done, onTime, pct: done ? Math.round(onTime / done * 100) : null };
+}
+function renderEmployees() {
+  const el = $('#tab-employees');
+  let html = `<div class="section-head"><h2>Сотрудники</h2></div><div class="emp-groups">`;
+  for (const room of ['103', '104']) {
+    const list = db.employees.filter(e => !e.archived && e.room === room).sort(byName);
+    html += `<div><div class="section-head" style="margin-bottom:12px"><h3 style="font-size:19px">Кабинет ${room} <span class="muted" style="font-weight:400;font-size:15px">· ${list.length}</span></h3>
+      <button class="btn ghost" data-action="emp-add" data-room="${room}">${icon('plus', 16)} Добавить сотрудника</button></div><div class="emp-cards">`;
+    if (!list.length) html += `<div class="card empty"><b>В кабинете ${room} пока нет сотрудников</b><button class="btn primary" data-action="emp-add" data-room="${room}">+ Добавить сотрудника</button></div>`;
+    for (const e of list) {
+      const s = empStats(e.id);
+      html += `<div class="card emp-card"><div class="top"><span class="avatar">${esc(initials(e))}</span>
+        <div style="min-width:0"><div class="name">${esc(e.fullName)}</div><div class="pos">${esc(e.position || 'Должность не указана')} · ${esc(e.shortName)}</div></div>
+        <div class="btns"><button class="icon-btn" data-action="emp-edit" data-id="${e.id}" title="Редактировать" aria-label="Редактировать">${icon('edit')}</button>
+        <button class="icon-btn danger" data-action="emp-delete" data-id="${e.id}" title="Удалить" aria-label="Удалить">${icon('trash')}</button></div></div>
+        <div class="metrics"><div class="metric"><b>${s.active}</b><span>активных заявок</span></div>
+        <div class="metric ${s.overdue ? 'bad' : ''}"><b>${s.overdue}</b><span>просрочено сейчас</span></div>
+        <div class="metric"><b>${s.done}</b><span>исполнено всего</span></div>
+        <div class="metric"><b>${s.pct == null ? '—' : s.pct + '%'}</b><span>в срок</span></div></div></div>`;
+    }
+    html += '</div></div>';
+  }
+  html += '</div>';
+  const arch = db.employees.filter(e => e.archived).sort(byName);
+  html += `<details class="card archive" ${arch.length ? '' : ''}><summary>${icon('archive', 17)} Архив сотрудников (${arch.length})</summary><div class="arch-list">
+    ${arch.length ? arch.map(e => { const s = empStats(e.id); return `<div class="arch-item"><span class="avatar">${esc(initials(e))}</span><div style="flex:1"><b>${esc(e.fullName)}</b> <span class="muted">· каб. ${e.room} · исполнено ${s.done}</span></div>
+      <button class="btn ghost sm" data-action="emp-restore" data-id="${e.id}">${icon('undo', 15)} Восстановить</button></div>`; }).join('') : '<p class="muted" style="margin:0">Архив пуст</p>'}
+  </div></details>`;
+  el.innerHTML = html;
+}
+function openEmployeeForm(id, room) {
+  const ed = id ? empById(id) : null;
+  const v0 = ed || { fullName: '', shortName: '', position: '', room: room || '103' };
+  let shortEdited = !!ed && ed.shortName !== shortNameOf(ed.fullName);
+  const m = openModal({
+    title: ed ? 'Редактирование сотрудника' : 'Новый сотрудник',
+    body: `<div class="form-grid">
+      <label class="field span2"><span>ФИО *</span><input id="ef-full" value="${esc(v0.fullName)}" placeholder="Иванова Мария Петровна" maxlength="120" autocomplete="off"><em class="err" id="ef-err"></em></label>
+      <label class="field"><span>Краткое имя</span><input id="ef-short" value="${esc(v0.shortName)}" placeholder="Иванова М.П." maxlength="60"></label>
+      <label class="field"><span>Должность</span><input id="ef-pos" value="${esc(v0.position || '')}" placeholder="необязательно" maxlength="80"></label>
+      <div class="field span2"><span>Кабинет</span><div class="radio-row">
+        <label><input type="radio" name="ef-room" value="103" ${v0.room === '103' ? 'checked' : ''}> Кабинет 103</label>
+        <label><input type="radio" name="ef-room" value="104" ${v0.room === '104' ? 'checked' : ''}> Кабинет 104</label></div></div>
+    </div>`,
+    footer: `<button class="btn ghost" data-close>Отмена</button><button class="btn primary" id="ef-save">Сохранить</button>`,
+    isDirty: () => snap() !== initial, onSubmit: () => submit()
+  });
+  const box = m.box;
+  const snap = () => JSON.stringify([$('#ef-full', box).value, $('#ef-short', box).value, $('#ef-pos', box).value, $('input[name=ef-room]:checked', box).value]);
+  const initial = snap();
+  $('#ef-full', box).addEventListener('input', e => { if (!shortEdited) $('#ef-short', box).value = shortNameOf(e.target.value); });
+  $('#ef-short', box).addEventListener('input', e => { shortEdited = e.target.value.trim() !== '' && e.target.value !== shortNameOf($('#ef-full', box).value); });
+  $('#ef-save', box).addEventListener('click', () => submit());
+  async function submit() {
+    const full = $('#ef-full', box).value.trim().replace(/\s+/g, ' ');
+    const short = $('#ef-short', box).value.trim() || shortNameOf(full);
+    const pos = $('#ef-pos', box).value.trim();
+    const rm = $('input[name=ef-room]:checked', box).value;
+    if (!full) { $('#ef-err', box).textContent = 'Укажите ФИО'; $('#ef-full', box).focus(); return; }
+    if (!ed) {
+      const e = { id: uid(), fullName: full, shortName: short, room: rm, position: pos, archived: false, createdAt: new Date().toISOString() };
+      db.employees.push(e);
+      log('employee_added', { employeeId: e.id, snapshot: e.shortName, details: `Добавлен сотрудник ${e.shortName}, каб. ${e.room}` });
+      m.close(true); commit(); toast(`Сотрудник ${e.shortName} добавлен`);
+      return;
+    }
+    const changes = [];
+    if (full !== ed.fullName) changes.push(`ФИО: ${ed.fullName} → ${full}`);
+    if (short !== ed.shortName) changes.push(`краткое имя: ${ed.shortName} → ${short}`);
+    if (pos !== (ed.position || '')) changes.push(`должность: ${ed.position || '—'} → ${pos || '—'}`);
+    let moveNote = '';
+    if (rm !== ed.room) {
+      changes.push(`кабинет: ${ed.room} → ${rm}`);
+      const act = db.requests.filter(r => r.employeeId === ed.id && isActive(r) && r.room !== rm);
+      if (act.length) {
+        const move = await confirmDialog({
+          title: 'Смена кабинета', ok: `Перенести в каб. ${rm}`, cancel: `Оставить в каб. ${ed.room}`,
+          text: `У сотрудника ${act.length} ${plural(act.length, ['активная заявка', 'активные заявки', 'активных заявок'])}. Перенести ${act.length === 1 ? 'её' : 'их'} в кабинет ${rm} вместе с сотрудником? Исполненные заявки останутся за прежним кабинетом.`
+        });
+        if (move) { act.forEach(r => { r.room = rm; }); moveNote = `; активные заявки (${act.length}) перенесены в каб. ${rm}`; }
+      }
+    }
+    Object.assign(ed, { fullName: full, shortName: short, position: pos, room: rm });
+    if (changes.length) log('employee_edited', { employeeId: ed.id, snapshot: ed.shortName, details: `Изменён сотрудник ${ed.shortName}: ${changes.join('; ')}${moveNote}` });
+    m.close(true); commit(); toast('Изменения сохранены');
+  }
+}
+async function deleteEmployee(id) {
+  const e = empById(id); if (!e) return;
+  const rs = db.requests.filter(r => r.employeeId === id);
+  const act = rs.filter(isActive);
+  if (!rs.length) {
+    if (!await confirmDialog({ title: 'Удаление сотрудника', text: `Удалить сотрудника <b>${esc(e.fullName)}</b>? За ним нет заявок, поэтому он будет удалён полностью.`, ok: 'Удалить', danger: true })) return;
+    db.employees = db.employees.filter(x => x.id !== id);
+    log('employee_removed', { employeeId: id, snapshot: e.shortName, details: `Удалён сотрудник ${e.shortName}, каб. ${e.room}` });
+    commit(); toast('Сотрудник удалён');
+    return;
+  }
+  if (!act.length) {
+    if (!await confirmDialog({ title: 'Удаление сотрудника', text: `У сотрудника <b>${esc(e.fullName)}</b> есть исполненные или отменённые заявки (${rs.length}). Он будет перемещён в архив: исчезнет из списков выбора, но сохранится в истории и статистике.`, ok: 'Переместить в архив', danger: true })) return;
+    e.archived = true;
+    log('employee_removed', { employeeId: id, snapshot: e.shortName, details: `Сотрудник ${e.shortName} (каб. ${e.room}) перемещён в архив` });
+    commit(); toast('Сотрудник перемещён в архив, его данные сохранены в статистике');
+    return;
+  }
+  // Есть активные заявки — сначала передать
+  const others = db.employees.filter(x => !x.archived && x.id !== id);
+  if (!others.length) { toast('Нельзя удалить: нет другого сотрудника для передачи активных заявок'); return; }
+  const opts = ['103', '104'].map(room => {
+    const l = others.filter(x => x.room === room).sort(byName);
+    return l.length ? `<optgroup label="Кабинет ${room}">${l.map(x => `<option value="${x.id}">${esc(x.shortName)}</option>`).join('')}</optgroup>` : '';
+  }).join('');
+  const m = openModal({
+    title: 'Передача активных заявок', size: 'sm',
+    body: `<p>У сотрудника <b>${esc(e.fullName)}</b> ${act.length} ${plural(act.length, ['активная заявка', 'активные заявки', 'активных заявок'])}: ${act.map(r => '№' + esc(r.number)).join(', ')}.</p>
+      <p>Удаление невозможно, пока заявки не переданы. Выберите нового исполнителя для всех активных заявок сразу:</p>
+      <label class="field"><span>Новый исполнитель</span><select id="ra-emp">${opts}</select></label>
+      <p class="muted" style="font-size:13px;margin-top:10px">После передачи сотрудник будет перемещён в архив.</p>`,
+    footer: `<button class="btn ghost" data-close>Отмена</button><button class="btn primary" id="ra-ok">Передать и архивировать</button>`,
+    onSubmit: () => go()
+  });
+  $('#ra-ok', m.box).addEventListener('click', go);
+  function go() {
+    const to = empById($('#ra-emp', m.box).value);
+    if (!to) return;
+    act.forEach(r => {
+      r.employeeId = to.id; r.room = to.room; r.updatedAt = new Date().toISOString();
+      logReq('reassigned', r, `Заявка №${r.number} передана: ${e.shortName} → ${to.shortName} (каб. ${to.room})`, { field: 'employeeId', from: e.id, to: to.id });
+    });
+    e.archived = true;
+    log('employee_removed', { employeeId: id, snapshot: e.shortName, details: `Сотрудник ${e.shortName} (каб. ${e.room}) перемещён в архив, ${act.length} ${plural(act.length, ['заявка передана', 'заявки переданы', 'заявок передано'])} сотруднику ${to.shortName}` });
+    m.close(true); commit();
+    toast(`Заявки переданы ${to.shortName}. Сотрудник перемещён в архив`);
+  }
+}
+
+/* =========================================================
+   11. ВКЛАДКА «СТАТИСТИКА» (графики — встроенный SVG)
+   ========================================================= */
+const statFilter = { period: 'month', from: '', to: '', room: '' };
+let statSort = { key: 'done', dir: -1 };
+
+function statRange() {
+  const t = parseISO(todayISO()), y = t.getFullYear(), m = t.getMonth();
+  const R = (a, b) => [toISO(a), toISO(b)];
+  switch (statFilter.period) {
+    case 'prev': return R(new Date(y, m - 1, 1), new Date(y, m, 0));
+    case 'quarter': { const q = Math.floor(m / 3) * 3; return R(new Date(y, q, 1), new Date(y, q + 3, 0)); }
+    case 'year': return R(new Date(y, 0, 1), new Date(y, 11, 31));
+    case 'custom': return [statFilter.from || '1900-01-01', statFilter.to || '2999-12-31'];
+    default: return R(new Date(y, m, 1), new Date(y, m + 1, 0));
+  }
+}
+/** Сводные показатели по набору заявок за период */
+function aggregate(reqs, [from, to]) {
+  let done = 0, on = 0, late = 0, sum = 0, max = 0, registered = 0, overdueNow = 0, activeNow = 0;
+  reqs.forEach(r => {
+    if (r.registeredAt >= from && r.registeredAt <= to) registered++;
+    const i = reqInfo(r);
+    if (isActive(r)) { activeNow++; if (i.status === 'overdue') overdueNow++; }
+    if (!r.completedAt || r.cancelled || r.completedAt < from || r.completedAt > to) return;
+    done++;
+    if (i.delay > 0) { late++; sum += i.delay; if (i.delay > max) max = i.delay; } else on++;
+  });
+  return { registered, done, on, late, sum, max, avg: late ? sum / late : 0, pct: done ? Math.round(on / done * 100) : null, overdueNow, activeNow };
+}
+function renderStats() {
+  const f = statFilter;
+  $('#tab-stats').innerHTML = `<div class="section-head"><h2>Статистика исполнительской дисциплины</h2>
+    <button class="btn ghost" data-action="stats-csv">${icon('download', 16)} Экспорт статистики в CSV</button></div>
+    <div class="card filters">
+      <label class="range">Период (по дате исполнения):
+        <select id="s-period">${[['month', 'Этот месяц'], ['prev', 'Прошлый месяц'], ['quarter', 'Этот квартал'], ['year', 'Этот год'], ['custom', 'Произвольный']].map(([v, n]) => `<option value="${v}" ${f.period === v ? 'selected' : ''}>${n}</option>`).join('')}</select></label>
+      <span class="range ${f.period === 'custom' ? '' : 'hidden'}" id="s-custom">с <input type="date" id="s-from" value="${f.from}"> по <input type="date" id="s-to" value="${f.to}"></span>
+      <label class="range">Кабинет: <select id="s-room"><option value="">Все</option><option value="103" ${f.room === '103' ? 'selected' : ''}>103</option><option value="104" ${f.room === '104' ? 'selected' : ''}>104</option></select></label>
+      <span class="muted" id="s-range-label" style="font-size:13px;margin-left:auto"></span>
+    </div><div id="stat-results"></div>`;
+  $('#s-period').addEventListener('change', e => { f.period = e.target.value; $('#s-custom').classList.toggle('hidden', f.period !== 'custom'); renderStatResults(); });
+  $('#s-from').addEventListener('change', e => { f.from = e.target.value; renderStatResults(); });
+  $('#s-to').addEventListener('change', e => { f.to = e.target.value; renderStatResults(); });
+  $('#s-room').addEventListener('change', e => { f.room = e.target.value; renderStatResults(); });
+  renderStatResults();
+}
+function empStatRows(range) {
+  const room = statFilter.room;
+  const reqs = db.requests.filter(r => !room || r.room === room);
+  const rows = db.employees.map(e => {
+    const a = aggregate(reqs.filter(r => r.employeeId === e.id), range);
+    return { e, a };
+  }).filter(({ e, a }) => (!e.archived && (!room || e.room === room)) || a.done || a.activeNow);
+  const val = ({ e, a }) => ({ name: e.fullName, room: e.room, done: a.done, on: a.on, late: a.late, pct: a.pct == null ? -1 : a.pct, avg: a.avg, sum: a.sum, active: a.activeNow })[statSort.key];
+  rows.sort((x, y) => { const va = val(x), vb = val(y); const c = typeof va === 'number' ? va - vb : String(va).localeCompare(String(vb), 'ru'); return c * statSort.dir || x.e.fullName.localeCompare(y.e.fullName, 'ru'); });
+  return rows;
+}
+function renderStatResults() {
+  const range = statRange();
+  const room = statFilter.room;
+  $('#s-range-label').textContent = statFilter.period === 'custom' && !statFilter.from && !statFilter.to ? 'за всё время' : `с ${fmtDate(range[0] < '1901' ? null : range[0])} по ${fmtDate(range[1] > '2998' ? null : range[1])}`;
+  const reqs = db.requests.filter(r => !room || r.room === room);
+  const a = aggregate(reqs, range);
+  const c = (label, value, cls = '', ic = '') => `<div class="card counter-card ${cls}"><span class="label">${ic ? icon(ic, 15) : ''} ${label}</span><span class="value">${value}</span></div>`;
+  let html = `<div class="stat-cards">
+    ${c('Зарегистрировано', a.registered, '', 'plus')}
+    ${c('Исполнено', a.done, '', 'check')}
+    ${c('Исполнено в срок', a.pct == null ? '—' : a.pct + '%', a.pct != null && a.pct >= 80 ? 'good' : a.pct != null ? 'warm' : '', 'clock')}
+    ${c('Средняя задержка, р.д.', a.late ? fmtNum(a.avg) : '0', a.late ? 'warm' : '', 'alert')}
+    ${c('Макс. задержка, р.д.', a.max, a.max ? 'warm' : '', 'alert')}
+    ${c('Сейчас просрочено', a.overdueNow, a.overdueNow ? 'hot' : '', 'flame')}
+  </div>`;
+  // Таблица по сотрудникам
+  const rows = empStatRows(range);
+  const cols = [['name', 'ФИО'], ['room', 'Каб.'], ['done', 'Исполнено'], ['on', 'В срок'], ['late', 'С задержкой'], ['pct', '% в срок'], ['avg', 'Средняя задержка'], ['sum', 'Суммарная задержка'], ['active', 'Активных сейчас']];
+  html += `<div class="card" style="margin-bottom:20px"><div class="pad" style="padding-bottom:10px"><h3>По сотрудникам</h3></div>
+    ${rows.length ? `<div class="table-wrap" style="max-height:none"><table><thead><tr>${cols.map(([k, n]) => `<th class="sortable" data-action="stat-sort" data-key="${k}">${n}${statSort.key === k ? `<span class="arrow">${statSort.dir > 0 ? '▲' : '▼'}</span>` : ''}</th>`).join('')}</tr></thead><tbody>
+    ${rows.map(({ e, a: x }) => `<tr class="${e.archived ? 'archived' : ''}" style="cursor:default" title="${e.archived ? 'Сотрудник в архиве' : ''}"><td>${esc(e.fullName)}${e.archived ? ' (архив)' : ''}</td><td class="tnum">${e.room}</td><td class="tnum">${x.done}</td><td class="tnum">${x.on}</td><td class="tnum ${x.late ? 'delay-pos' : ''}">${x.late}</td><td class="tnum">${x.pct == null ? '—' : x.pct + '%'}</td><td class="tnum">${x.late ? fmtNum(x.avg) : '0'}</td><td class="tnum">${x.sum}</td><td class="tnum">${x.activeNow}</td></tr>`).join('')}
+    </tbody></table></div>` : '<div class="empty">Нет данных</div>'}</div>`;
+  // Сравнение кабинетов и график % в срок
+  const r103 = aggregate(db.requests.filter(r => r.room === '103'), range), r104 = aggregate(db.requests.filter(r => r.room === '104'), range);
+  const line = (label, v1, v2, better) => {
+    const b1 = better && v1 !== v2 && (better === 'hi' ? v1 > v2 : v1 < v2), b2 = better && v1 !== v2 && !b1;
+    const fm = v => v == null ? '—' : v;
+    return `<span class="l">${label}</span><span class="v ${b1 ? 'better' : ''}">${fm(v1)}</span><span class="v ${b2 ? 'better' : ''}">${fm(v2)}</span>`;
+  };
+  html += `<div class="grid2"><div class="card pad"><h3 style="margin-bottom:14px">Сравнение кабинетов</h3><div class="cmp">
+      <span class="h">Показатель</span><span class="h">Каб. 103</span><span class="h">Каб. 104</span>
+      ${line('Зарегистрировано', r103.registered, r104.registered)}
+      ${line('Исполнено', r103.done, r104.done)}
+      ${line('В срок', r103.on, r104.on)}
+      ${line('С задержкой', r103.late, r104.late, 'lo')}
+      ${line('% в срок', r103.pct == null ? null : r103.pct + '%', r104.pct == null ? null : r104.pct + '%')}
+      ${line('Средняя задержка, р.д.', fmtNum(r103.avg), fmtNum(r104.avg), 'lo')}
+      ${line('Макс. задержка, р.д.', r103.max, r104.max, 'lo')}
+      ${line('Активных сейчас', r103.activeNow, r104.activeNow)}
+      ${line('Просрочено сейчас', r103.overdueNow, r104.overdueNow, 'lo')}
+    </div></div>
+    <div class="card pad chart"><h3 style="margin-bottom:10px">% исполнения в срок по сотрудникам</h3>${chartPct(rows.filter(x => x.a.done))}</div></div>`;
+  // Столбчатая диаграмма по месяцам
+  html += `<div class="card pad chart"><div class="section-head" style="margin-bottom:8px"><h3>Исполнение по месяцам${room ? `, каб. ${room}` : ''}</h3>
+    <div class="seg"><button class="${ui.months === 6 ? 'on' : ''}" data-action="months" data-v="6">6 месяцев</button><button class="${ui.months === 12 ? 'on' : ''}" data-action="months" data-v="12">12 месяцев</button></div></div>
+    ${chartMonthly(room)}
+    <div class="legend"><span><i style="background:#D9BE98"></i>в срок</span><span><i style="background:var(--orange)"></i>с задержкой</span></div></div>`;
+  $('#stat-results').innerHTML = html;
+}
+function niceStep(max) { if (max <= 5) return 1; if (max <= 10) return 2; if (max <= 25) return 5; if (max <= 50) return 10; return Math.ceil(max / 50) * 10; }
+function chartMonthly(room) {
+  const n = ui.months, t = parseISO(todayISO()), months = [];
+  for (let k = n - 1; k >= 0; k--) {
+    const d = new Date(t.getFullYear(), t.getMonth() - k, 1);
+    months.push({ key: toISO(d).slice(0, 7), label: MONTHS_SHORT[d.getMonth()], full: `${MONTHS_NOM[d.getMonth()]} ${d.getFullYear()}`, on: 0, late: 0 });
+  }
+  db.requests.forEach(r => {
+    if (!r.completedAt || r.cancelled || (room && r.room !== room)) return;
+    const mm = months.find(x => x.key === r.completedAt.slice(0, 7)); if (!mm) return;
+    if (reqInfo(r).delay > 0) mm.late++; else mm.on++;
+  });
+  const W = 900, H = 260, pl = 36, pr = 12, pt = 18, pb = 34, ih = H - pt - pb;
+  const max = Math.max(1, ...months.map(m => m.on + m.late));
+  const step = niceStep(max), top = Math.ceil(max / step) * step;
+  const cw = (W - pl - pr) / n, bw = Math.min(46, cw * 0.55);
+  let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Исполнение заявок по месяцам">`;
+  for (let v = 0; v <= top; v += step) {
+    const y = H - pb - v / top * ih;
+    s += `<line x1="${pl}" x2="${W - pr}" y1="${y}" y2="${y}" stroke="var(--border)" stroke-width="1" ${v ? 'stroke-dasharray="3 4"' : ''}/><text x="${pl - 8}" y="${y + 4}" text-anchor="end" font-size="11" fill="var(--text-muted)">${v}</text>`;
+  }
+  months.forEach((m, i) => {
+    const x = pl + i * cw + (cw - bw) / 2;
+    const hOn = m.on / top * ih, hLate = m.late / top * ih;
+    const yOn = H - pb - hOn, yLate = yOn - hLate;
+    s += `<g><title>${m.full}: в срок ${m.on}, с задержкой ${m.late}</title>`;
+    if (m.on) s += `<rect x="${x}" y="${yOn}" width="${bw}" height="${hOn}" rx="3" fill="#D9BE98"/>`;
+    if (m.late) s += `<rect x="${x}" y="${yLate}" width="${bw}" height="${hLate}" rx="3" fill="var(--orange)"/>`;
+    if (m.on && m.late) s += `<rect x="${x}" y="${yOn - 1}" width="${bw}" height="2" fill="var(--surface)"/>`;
+    const tot = m.on + m.late;
+    s += `<text x="${x + bw / 2}" y="${(tot ? yLate : H - pb) - 6}" text-anchor="middle" font-size="12" font-weight="600" fill="var(--brown)">${tot || ''}</text>`;
+    s += `<text x="${x + bw / 2}" y="${H - pb + 18}" text-anchor="middle" font-size="12" fill="var(--text-muted)">${m.label}</text></g>`;
+  });
+  return s + '</svg>';
+}
+function chartPct(rows) {
+  if (!rows.length) return '<div class="empty" style="padding:24px">Нет исполненных заявок за период</div>';
+  rows = rows.slice().sort((a, b) => (b.a.pct - a.a.pct) || a.e.fullName.localeCompare(b.e.fullName, 'ru'));
+  const W = 520, lw = 130, rh = 30, H = rows.length * rh + 8, bwMax = W - lw - 56;
+  let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Процент исполнения в срок по сотрудникам">`;
+  rows.forEach(({ e, a }, i) => {
+    const y = i * rh + 4, w = Math.max(2, a.pct / 100 * bwMax);
+    const col = a.pct >= 80 ? 'var(--success)' : a.pct >= 50 ? 'var(--brown-soft)' : 'var(--orange)';
+    s += `<g><title>${esc(e.fullName)}: ${a.on} из ${a.done} в срок</title>
+      <text x="${lw - 10}" y="${y + 17}" text-anchor="end" font-size="12.5" fill="var(--text)" ${e.archived ? 'font-style="italic"' : ''}>${esc(e.shortName)}</text>
+      <rect x="${lw}" y="${y + 5}" width="${bwMax}" height="16" rx="8" fill="var(--surface-2)"/>
+      <rect x="${lw}" y="${y + 5}" width="${w}" height="16" rx="8" fill="${col}"/>
+      <text x="${lw + bwMax + 8}" y="${y + 17}" font-size="12.5" font-weight="700" fill="var(--brown)">${a.pct}%</text></g>`;
+  });
+  return s + '</svg>';
+}
+function exportStatsCSV() {
+  const range = statRange();
+  const rows = empStatRows(range);
+  const room = statFilter.room;
+  const a = aggregate(db.requests.filter(r => !room || r.room === room), range);
+  const data = [
+    ['Статистика за период', `${fmtDate(range[0])} — ${fmtDate(range[1])}`, room ? `каб. ${room}` : 'все кабинеты'], [],
+    ['Зарегистрировано', a.registered], ['Исполнено', a.done], ['Исполнено в срок, %', a.pct == null ? '' : a.pct],
+    ['Средняя задержка, р.д.', fmtNum(a.avg)], ['Максимальная задержка, р.д.', a.max], ['Сейчас просрочено', a.overdueNow], [],
+    ['ФИО', 'Каб.', 'Исполнено', 'В срок', 'С задержкой', '% в срок', 'Средняя задержка', 'Суммарная задержка', 'Активных сейчас', 'Архив']
+  ];
+  rows.forEach(({ e, a: x }) => data.push([e.fullName, e.room, x.done, x.on, x.late, x.pct == null ? '' : x.pct, fmtNum(x.avg), x.sum, x.activeNow, e.archived ? 'да' : '']));
+  downloadCSV(`statistika-${todayISO()}.csv`, data);
+}
+
+/* =========================================================
+   12. ВКЛАДКА «ИСТОРИЯ»
+   ========================================================= */
+const histFilter = { action: '', emp: '', num: '', from: '', to: '' };
+let histLimit = 150;
+function renderHistory() {
+  const f = histFilter;
+  $('#tab-history').innerHTML = `<div class="section-head"><h2>История действий</h2><span class="muted" style="font-size:13.5px">Записи не редактируются. Очистка старых записей — в Настройках.</span></div>
+    <div class="card filters">
+      <select id="h-action" aria-label="Тип события"><option value="">Все события</option>${Object.entries(ACTIONS).map(([k, [n]]) => `<option value="${k}" ${f.action === k ? 'selected' : ''}>${n}</option>`).join('')}</select>
+      <select id="h-emp" aria-label="Сотрудник"><option value="">Все сотрудники</option>${empSelectOptions(f.emp)}</select>
+      <input id="h-num" placeholder="№ заявки" value="${esc(f.num)}" style="width:130px" aria-label="Номер заявки">
+      <span class="range">с <input type="date" id="h-from" value="${f.from}"> по <input type="date" id="h-to" value="${f.to}"></span>
+      <button class="btn ghost" data-action="hist-reset">Сбросить</button>
+    </div><div class="card" id="hist-results"></div>`;
+  const bind = (id, ev, k) => $('#' + id).addEventListener(ev, e => { f[k] = e.target.value; histLimit = 150; renderHistResults(); });
+  bind('h-action', 'change', 'action'); bind('h-emp', 'change', 'emp'); bind('h-num', 'input', 'num'); bind('h-from', 'change', 'from'); bind('h-to', 'change', 'to');
+  renderHistResults();
+}
+function renderHistResults() {
+  const f = histFilter, num = f.num.trim().toLowerCase();
+  const list = db.history.filter(h => {
+    if (f.action && h.action !== f.action) return false;
+    if (f.emp && h.employeeId !== f.emp && !(h.details && (h.details.from === f.emp || h.details.to === f.emp))) return false;
+    if (num && !(h.requestNumber != null && String(h.requestNumber).toLowerCase() === num)) return false;
+    const d = toISO(new Date(h.timestamp));
+    if (f.from && d < f.from) return false;
+    if (f.to && d > f.to) return false;
+    return true;
+  }).sort((a, b) => b.timestamp.localeCompare(a.timestamp));
+  if (!list.length) { $('#hist-results').innerHTML = `<div class="empty"><b>Событий не найдено</b>${db.history.length ? 'Измените условия фильтра.' : 'Здесь появятся все действия с заявками и сотрудниками.'}</div>`; return; }
+  let html = '<ul class="h-list">', lastDay = '';
+  list.slice(0, histLimit).forEach(h => {
+    const d = new Date(h.timestamp), day = toISO(d);
+    if (day !== lastDay) { html += `<li class="day-sep">${fmtLong(day)}</li>`; lastDay = day; }
+    const [label, ic] = ACTIONS[h.action] || [h.action, 'info'];
+    html += `<li class="h-item"><span class="h-ic a-${h.action}">${icon(ic, 17)}</span><div><div class="h-text">${histHTML(h)}</div><div class="h-meta">${fmtDateTime(h.timestamp)} · ${label}</div></div></li>`;
+  });
+  html += '</ul>';
+  html += `<div class="table-foot"><span class="muted">Показано ${Math.min(histLimit, list.length)} из ${list.length}</span>${list.length > histLimit ? '<button class="btn ghost" data-action="hist-more">Показать ещё</button>' : ''}</div>`;
+  $('#hist-results').innerHTML = html;
+}
+
+/* =========================================================
+   13. ВКЛАДКА «НАСТРОЙКИ»
+   ========================================================= */
+function renderSettings() {
+  const s = db.settings;
+  const used = new Set(db.requests.map(r => r.typeId));
+  const dateChips = (arr, kind) => {
+    if (!arr.length) return '<p class="muted" style="font-size:13.5px">Список пуст</p>';
+    const sorted = arr.slice().sort(), years = [...new Set(sorted.map(d => d.slice(0, 4)))];
+    return years.map(y => `<div class="year-h">${y}</div><div class="date-chips">${sorted.filter(d => d.startsWith(y)).map(d => `<span class="date-chip">${fmtDate(d)} <small>${dow(d)}</small><button data-action="date-del" data-kind="${kind}" data-date="${d}" title="Удалить" aria-label="Удалить ${fmtDate(d)}">${icon('x', 13)}</button></span>`).join('')}</div>`).join('');
+  };
+  const hasDemo = db.employees.some(e => e.demo) || db.requests.some(r => r.demo);
+  $('#tab-settings').innerHTML = `<div class="section-head"><h2>Настройки</h2></div>
+  <div class="settings">
+    <div style="display:grid;gap:20px">
+      <div class="card"><h3>Типы заявок и нормативы</h3>
+        <p class="desc-text">Норматив — количество рабочих дней на исполнение. Пустое поле — «без норматива» (срок вводится вручную). Изменение норматива не пересчитывает сроки уже созданных заявок.</p>
+        <table class="types-table"><thead><tr><th>Название</th><th>Норматив, р.д.</th><th></th></tr></thead><tbody>
+        ${s.requestTypes.map(t => `<tr class="${t.active ? '' : 'off'}"><td><input value="${esc(t.name)}" data-change="type-name" data-id="${t.id}" aria-label="Название типа" maxlength="80"></td>
+          <td class="norm"><input type="number" min="0" max="365" value="${t.normDays == null ? '' : t.normDays}" placeholder="—" data-change="type-norm" data-id="${t.id}" aria-label="Норматив"></td>
+          <td style="white-space:nowrap;text-align:right"><button class="btn ghost sm" data-action="type-toggle" data-id="${t.id}">${t.active ? 'Скрыть' : 'Показать'}</button>
+          <button class="icon-btn danger" data-action="type-delete" data-id="${t.id}" title="${used.has(t.id) ? 'Используется в заявках — будет скрыт' : 'Удалить'}" aria-label="Удалить">${icon('trash', 16)}</button></td></tr>`).join('')}
+        </tbody></table>
+        <button class="btn ghost" style="margin-top:12px" data-action="type-add">${icon('plus', 16)} Добавить тип</button>
+      </div>
+      <div class="card"><h3>Нумерация заявок</h3><p class="desc-text">Номер новой заявки = префикс + следующий номер. Например, «ЦЭ-» и 15 → «ЦЭ-15».</p>
+        <div class="row-inline"><label class="field" style="flex:1"><span>Префикс</span><input id="set-prefix" value="${esc(s.numberPrefix)}" maxlength="20" placeholder="необязательно"></label>
+        <label class="field" style="width:150px"><span>Следующий номер</span><input type="number" id="set-next" min="1" value="${s.nextNumber}"></label>
+        <button class="btn primary" style="align-self:flex-end" data-action="save-numbering">Сохранить</button></div>
+        <p class="muted" style="font-size:13px;margin:10px 0 0">Следующая заявка получит номер: <b>${esc(nextAutoNumber())}</b></p>
+      </div>
+      <div class="card"><h3>Резервная копия</h3>
+        <p class="desc-text">Последняя копия: <b>${s.lastBackupAt ? fmtDateTime(s.lastBackupAt) : 'ещё не делалась'}</b></p>
+        <div class="row-inline"><button class="btn primary" data-action="backup">${icon('download', 16)} Скачать резервную копию (JSON)</button>
+        <button class="btn ghost" data-action="import">${icon('upload', 16)} Восстановить из файла</button></div>
+        <div class="info-note" style="margin-top:14px">${icon('info', 18)}<span>Данные хранятся только в этом браузере на этом компьютере. Регулярно делайте резервную копию — её можно восстановить на другом компьютере.</span></div>
+      </div>
+    </div>
+    <div style="display:grid;gap:20px">
+      <div class="card"><h3>Производственный календарь</h3>
+        <p class="desc-text">Праздники исключаются из расчёта сроков и задержек, перенесённые рабочие дни (например, рабочая суббота) — включаются.</p>
+        <b style="font-size:14px">Праздничные нерабочие дни (${s.holidays.length})</b>
+        ${dateChips(s.holidays, 'holidays')}
+        <div class="row-inline"><input type="date" id="hol-new" aria-label="Новая праздничная дата"><button class="btn ghost" data-action="date-add" data-kind="holidays">${icon('plus', 16)} Добавить</button>
+        <button class="btn ghost" data-action="fill-rf">${icon('calendar', 16)} Заполнить праздники РФ на год…</button></div>
+        <hr style="border:0;border-top:1px solid var(--border);margin:18px 0">
+        <b style="font-size:14px">Перенесённые рабочие дни (${s.extraWorkdays.length})</b>
+        ${dateChips(s.extraWorkdays, 'extraWorkdays')}
+        <div class="row-inline"><input type="date" id="extra-new" aria-label="Новый рабочий день"><button class="btn ghost" data-action="date-add" data-kind="extraWorkdays">${icon('plus', 16)} Добавить</button></div>
+      </div>
+      <div class="card"><h3>Журнал и демо-данные</h3>
+        <p class="desc-text">Можно удалить записи истории старше выбранной даты (всего записей: ${db.history.length}).</p>
+        <div class="row-inline"><input type="date" id="hist-clean" aria-label="Дата"><button class="btn ghost" data-action="hist-clean">Очистить записи старше даты</button></div>
+        ${hasDemo ? `<hr style="border:0;border-top:1px solid var(--border);margin:18px 0"><p class="desc-text">В базе есть демонстрационные сотрудники и заявки.</p><button class="btn ghost" data-action="demo-remove">${icon('trash', 16)} Удалить демо-данные</button>` : ''}
+      </div>
+      <div class="card danger-zone"><h3>Опасная зона</h3><p class="desc-text">Полное удаление всех заявок, сотрудников, истории и настроек из этого браузера. Действие необратимо — сначала скачайте резервную копию.</p>
+        <button class="btn danger" data-action="wipe">${icon('trash', 16)} Очистить все данные</button></div>
+    </div>
+  </div>`;
+}
+function handleChange(kind, el) {
+  const t = db.settings.requestTypes.find(x => x.id === el.dataset.id);
+  if (!t) return;
+  if (kind === 'type-name') {
+    const v = el.value.trim();
+    if (!v) { el.value = t.name; toast('Название не может быть пустым'); return; }
+    if (v === t.name) return;
+    log('settings_changed', { details: `Тип заявки «${t.name}» переименован в «${v}»` });
+    t.name = v;
+  } else if (kind === 'type-norm') {
+    const raw = el.value.trim();
+    const v = raw === '' ? null : Math.max(0, Math.min(365, parseInt(raw, 10)));
+    if (raw !== '' && isNaN(v)) { el.value = t.normDays == null ? '' : t.normDays; return; }
+    if (v === t.normDays) return;
+    log('settings_changed', { details: `Норматив типа «${t.name}»: ${t.normDays == null ? 'без норматива' : t.normDays + ' р.д.'} → ${v == null ? 'без норматива' : v + ' р.д.'}` });
+    t.normDays = v;
+  }
+  commit(); toast('Настройки сохранены');
+}
+function openFillRF() {
+  const y = new Date().getFullYear();
+  const m = openModal({
+    title: 'Праздники РФ', size: 'sm',
+    body: `<p>Будут добавлены государственные праздники: 1–8 января, 23 февраля, 8 марта, 1 и 9 мая, 12 июня, 4 ноября. Переносы выходных, утверждённые правительством, добавьте вручную.</p>
+      <label class="field"><span>Год</span><input type="number" id="rf-year" min="2000" max="2100" value="${new Date().getMonth() >= 9 ? y + 1 : y}"></label>`,
+    footer: `<button class="btn ghost" data-close>Отмена</button><button class="btn primary" id="rf-ok">Заполнить</button>`,
+    onSubmit: () => go()
+  });
+  $('#rf-ok', m.box).addEventListener('click', go);
+  function go() {
+    const yy = parseInt($('#rf-year', m.box).value, 10);
+    if (!(yy >= 2000 && yy <= 2100)) return;
+    const add = rfHolidays(yy).filter(d => !db.settings.holidays.includes(d));
+    db.settings.holidays.push(...add);
+    db.settings.extraWorkdays = db.settings.extraWorkdays.filter(d => !add.includes(d));
+    log('settings_changed', { details: `Добавлены праздники РФ на ${yy} год (${add.length} ${plural(add.length, ['дата', 'даты', 'дат'])})` });
+    m.close(true); commit(); toast(add.length ? `Добавлено дат: ${add.length}` : 'Все праздники этого года уже в списке');
+  }
+}
+
+/* ---------- Резервная копия ---------- */
+function exportBackup() {
+  db.settings.lastBackupAt = new Date().toISOString();
+  save();
+  downloadBlob(`zayavki-backup-${todayISO()}.json`, JSON.stringify(db, null, 2), 'application/json');
+  renderAll();
+  toast('Резервная копия скачана');
+}
+function importBackup(file, fromCorrupt) {
+  const rd = new FileReader();
+  rd.onload = async () => {
+    let d;
+    try { d = JSON.parse(String(rd.result).replace(/^﻿/, '')); } catch (e) { toast('Файл не является корректным JSON'); return; }
+    if (!validate(d)) { toast('Структура файла не подходит: это не резервная копия этого сайта'); return; }
+    if (!fromCorrupt && db && !await confirmDialog({ title: 'Восстановление из файла', text: `Текущие данные будут заменены данными из файла <b>${esc(file.name)}</b> (сотрудников: ${d.employees.length}, заявок: ${d.requests.length}). Продолжить?`, ok: 'Заменить данные', danger: true })) return;
+    db = migrate(d);
+    log('data_imported', { details: `Данные восстановлены из файла ${file.name}: сотрудников ${d.employees.length}, заявок ${d.requests.length}` });
+    $('#welcome').classList.add('hidden');
+    commit(); toast('Данные восстановлены');
+  };
+  rd.onerror = () => toast('Не удалось прочитать файл');
+  rd.readAsText(file, 'utf-8');
+}
+async function wipeAll() {
+  if (!await confirmDialog({ title: 'Очистить все данные?', text: 'Будут удалены все заявки, сотрудники, история и настройки. Рекомендуем сначала скачать резервную копию.', ok: 'Продолжить', danger: true })) return;
+  const m = openModal({
+    title: 'Подтвердите удаление', size: 'sm',
+    body: `<p>Для подтверждения введите слово <b>УДАЛИТЬ</b>:</p><input id="wipe-word" autocomplete="off" style="width:100%">`,
+    footer: `<button class="btn ghost" data-close>Отмена</button><button class="btn danger-fill" id="wipe-ok" disabled>Удалить всё</button>`,
+    onSubmit: () => go()
+  });
+  const inp = $('#wipe-word', m.box), btn = $('#wipe-ok', m.box);
+  inp.addEventListener('input', () => { btn.disabled = inp.value.trim().toUpperCase() !== 'УДАЛИТЬ'; });
+  btn.addEventListener('click', go);
+  function go() {
+    if (inp.value.trim().toUpperCase() !== 'УДАЛИТЬ') return;
+    m.close(true);
+    try { localStorage.removeItem(KEY); } catch (e) { /* ничего */ }
+    db = null;
+    showWelcome();
+  }
+}
+
+/* =========================================================
+   14. ДЕМО-ДАННЫЕ И ПРИВЕТСТВЕННЫЙ ЭКРАН
+   ========================================================= */
+function loadDemo() {
+  const t = todayISO();
+  const stamp = (iso, h, m) => { const d = parseISO(iso); d.setHours(h, m); return d.toISOString(); };
+  const emps = [
+    ['Иванова Мария Петровна', '103', 'Ведущий эксперт'], ['Смирнов Алексей Викторович', '103', 'Эксперт'], ['Кузнецова Ольга Игоревна', '103', 'Специалист'],
+    ['Попов Дмитрий Сергеевич', '104', 'Главный эксперт'], ['Васильева Елена Андреевна', '104', 'Эксперт'], ['Новиков Артём Олегович', '104', 'Специалист']
+  ].map(([f, room, pos]) => ({ id: uid(), fullName: f, shortName: shortNameOf(f), room, position: pos, archived: false, createdAt: new Date().toISOString(), demo: true }));
+  db.employees.push(...emps);
+  emps.forEach(e => log('employee_added', { employeeId: e.id, snapshot: e.shortName, details: `Добавлен сотрудник ${e.shortName}, каб. ${e.room}`, timestamp: stamp(subWorkdays(t, 130), 9, 0), demo: true }));
+  const T = db.settings.requestTypes;
+  // [сотрудник, тип, рег. N р.д. назад, исполнение относительно срока (null — активна), описание, отменена]
+  const specs = [
+    [0, 1, 8, null, 'Проверка достоверности цены на поставку серверного оборудования'],
+    [3, 2, 5, null, 'Анализ КП на услуги клининга административного здания'],
+    [1, 1, 5, null, 'Проверка цены контракта на поставку канцелярских товаров'],
+    [4, 3, 2, null, 'Справка о среднерыночной стоимости офисной мебели'],
+    [0, 2, 2, null, 'Анализ трёх коммерческих предложений на ремонт кондиционеров'],
+    [2, 0, 3, null, 'Проверка сметной документации на капремонт кровли склада №3'],
+    [5, 1, 1, null, 'Проверка НМЦК на закупку спецодежды'],
+    [3, 0, 6, null, 'Проверка сметы на благоустройство прилегающей территории'],
+    [1, 3, 1, null, 'Консультация по методике расчёта НМЦК'],
+    [4, 2, 4, null, 'Анализ КП на техническое обслуживание лифтов'],
+    [5, 4, 1, null, 'Экспертиза цены на разработку проектной документации (срок по согласованию)'],
+    [0, 1, 20, -1, 'Проверка достоверности цены на ГСМ'],
+    [1, 2, 15, 0, 'Анализ КП на поставку картриджей'],
+    [2, 1, 30, 2, 'Проверка цены на услуги охраны объекта'],
+    [3, 0, 45, 0, 'Проверка сметы на ремонт системы отопления'],
+    [4, 1, 60, 3, 'Проверка стоимости транспортных услуг'],
+    [5, 2, 25, -1, 'Анализ КП на поставку питьевой воды'],
+    [0, 3, 70, 1, 'Справка по индексам изменения сметной стоимости'],
+    [3, 1, 90, 0, 'Проверка цены на поставку вычислительной техники'],
+    [1, 0, 110, 4, 'Проверка сметной документации на реконструкцию проходной'],
+    [4, 2, 10, 0, 'Анализ КП на аренду спецтехники'],
+    [2, 3, 8, 1, 'Консультация по оформлению обоснования цены'],
+    [5, 3, 12, null, 'Справка по стоимости услуг связи (дубль)', true]
+  ];
+  const list = specs.map(([ei, ti, back, comp, desc, cancel]) => {
+    const reg = subWorkdays(t, back), tp = T[ti], e = emps[ei];
+    const deadline = tp.normDays != null ? addWorkdays(reg, tp.normDays) : addWorkdays(t, 6);
+    let completedAt = null;
+    if (comp != null) {
+      completedAt = comp >= 0 ? addWorkdays(deadline, comp) : subWorkdays(deadline, -comp);
+      if (completedAt > t) completedAt = t;
+      if (completedAt < reg) completedAt = reg;
+    }
+    return { id: uid(), number: '', description: desc, typeId: tp.id, employeeId: e.id, room: e.room, registeredAt: reg, deadline, deadlineManual: false, completedAt, cancelled: !!cancel, createdAt: stamp(reg, 9, 30), updatedAt: stamp(completedAt || reg, 16, 0), demo: true };
+  }).sort((a, b) => a.registeredAt.localeCompare(b.registeredAt));
+  list.forEach((r, i) => { r.number = String(i + 1); });
+  db.settings.nextNumber = list.length + 1;
+  db.requests.push(...list);
+  list.forEach(r => {
+    const e = empById(r.employeeId);
+    logReq('created', r, `Создана заявка №${r.number}: исполнитель ${e.shortName}, каб. ${e.room}, срок до ${fmtDate(r.deadline)}`, null, { timestamp: r.createdAt, demo: true });
+    if (r.completedAt) {
+      const d = reqInfo(r).delay;
+      logReq('completed', r, `Заявка №${r.number} отмечена исполненной ${fmtDate(r.completedAt)}${d ? `, задержка ${d} р.д.` : ', в срок'}`, null, { timestamp: stamp(r.completedAt, 16, 0), demo: true });
+    }
+    if (r.cancelled) logReq('cancelled', r, `Заявка №${r.number} отменена`, null, { timestamp: stamp(r.registeredAt, 15, 0), demo: true });
+  });
+}
+async function removeDemo() {
+  if (!await confirmDialog({ title: 'Удалить демо-данные', text: 'Будут удалены демонстрационные сотрудники, их заявки и связанные записи истории. Ваши собственные данные останутся.', ok: 'Удалить демо-данные', danger: true })) return;
+  const demoEmp = new Set(db.employees.filter(e => e.demo).map(e => e.id));
+  const busy = db.requests.filter(r => !r.demo && demoEmp.has(r.employeeId));
+  if (busy.length) { toast('За демо-сотрудниками есть ваши заявки — сначала передайте их'); return; }
+  const demoReq = new Set(db.requests.filter(r => r.demo).map(r => r.id));
+  db.requests = db.requests.filter(r => !r.demo);
+  db.employees = db.employees.filter(e => !e.demo);
+  db.history = db.history.filter(h => !h.demo && !demoReq.has(h.requestId) && !demoEmp.has(h.employeeId));
+  if (!db.requests.length) db.settings.nextNumber = 1;
+  log('settings_changed', { details: 'Удалены демо-данные' });
+  commit(); toast('Демо-данные удалены');
+}
+function showWelcome() {
+  const w = $('#welcome');
+  w.innerHTML = `<div class="card welcome-box">
+    <div class="brand-mark">${icon('clock', 28)}</div>
+    <h2>Контроль сроков заявок</h2>
+    <p class="muted">Отдел ценовой экспертизы · кабинеты 103 и 104.<br>Регистрация заявок, контроль сроков в рабочих днях, история и статистика.</p>
+    <div class="choices">
+      <button class="choice" data-action="start-clean"><b>Начать с чистого листа</b><span>Пустая база с типами заявок и праздниками РФ по умолчанию.</span></button>
+      <button class="choice" data-action="start-demo"><b>Загрузить демо-данные</b><span>6 вымышленных сотрудников и ~20 заявок с разными статусами — для знакомства.</span></button>
+    </div>
+    <button class="btn ghost sm" data-action="import">${icon('upload', 15)} Восстановить из резервной копии</button>
+    <div class="info-note" style="margin-top:20px;text-align:left">${icon('info', 18)}<span>Данные хранятся только в этом браузере на этом компьютере. Регулярно делайте резервную копию.</span></div>
+  </div>`;
+  w.classList.remove('hidden');
+}
+function showCorrupt() {
+  const w = $('#welcome');
+  w.innerHTML = `<div class="card welcome-box">
+    <div class="brand-mark" style="background:var(--danger)">${icon('alert', 28)}</div>
+    <h2>Данные повреждены</h2>
+    <p class="muted">Не удалось прочитать сохранённые данные. Восстановите их из резервной копии или начните заново — перед сбросом повреждённые данные будут автоматически сохранены в файл.</p>
+    <div class="choices">
+      <button class="choice" data-action="import-corrupt"><b>Восстановить из файла</b><span>Загрузить резервную копию JSON.</span></button>
+      <button class="choice" data-action="reset-corrupt"><b>Начать заново</b><span>Сохранить повреждённые данные в файл и открыть приветственный экран.</span></button>
+    </div></div>`;
+  w.classList.remove('hidden');
+}
+function startApp() {
+  $('#welcome').classList.add('hidden');
+  renderAll();
+}
+
+/* =========================================================
+   15. ОБРАБОТЧИКИ СОБЫТИЙ
+   ========================================================= */
+let importFromCorrupt = false;
+function handleAction(a, el) {
+  const id = el.dataset.id;
+  if (el.dataset.card) { const top = last(modalStack); if (top) top.close(true); }
+  switch (a) {
+    case 'tab': switchTab(el.dataset.tab); break;
+    case 'new-request': openRequestForm(); break;
+    case 'open-req': openRequestCard(id); break;
+    case 'complete': actComplete(id); break;
+    case 'reopen': actReopen(id); break;
+    case 'edit': openRequestForm(id); break;
+    case 'cancel': actCancel(id); break;
+    case 'delete': actDelete(id); break;
+    case 'hot': ui.onlyHot = el.dataset.v === '1'; saveUI(); renderDeadlines(); break;
+    case 'card-filter': {
+      Object.assign(reqFilter, { q: '', room: '', emp: '', type: '', from: '', to: '', doneMonth: false });
+      reqFilter.statuses = { active: ['work', 'soon', 'today', 'overdue'], today: ['today'], overdue: ['overdue'], donemonth: ['done', 'late'] }[el.dataset.filter];
+      if (el.dataset.filter === 'donemonth') reqFilter.doneMonth = true;
+      reqSort = { key: 'default', dir: 1 }; reqPage = 1;
+      switchTab('requests'); break;
+    }
+    case 'status-chip': {
+      const s = el.dataset.status, arr = reqFilter.statuses, i = arr.indexOf(s);
+      if (i >= 0) arr.splice(i, 1); else arr.push(s);
+      el.classList.toggle('on', i < 0); el.setAttribute('aria-pressed', i < 0);
+      reqPage = 1; renderReqResults(); break;
+    }
+    case 'clear-donemonth': reqFilter.doneMonth = false; renderRequests(); break;
+    case 'reset-filters':
+      Object.assign(reqFilter, { q: '', room: '', emp: '', statuses: [], type: '', from: '', to: '', doneMonth: false });
+      reqSort = { key: 'default', dir: 1 }; reqPage = 1; renderRequests(); break;
+    case 'sort': {
+      const k = el.dataset.key;
+      if (reqSort.key === k) reqSort.dir = -reqSort.dir; else reqSort = { key: k, dir: 1 };
+      renderReqResults(); break;
+    }
+    case 'page': reqPage = +el.dataset.p; renderReqResults(); $('#req-results').scrollIntoView({ block: 'start' }); break;
+    case 'export-csv': exportRequestsCSV(); break;
+    case 'emp-add': openEmployeeForm(null, el.dataset.room); break;
+    case 'emp-edit': openEmployeeForm(id); break;
+    case 'emp-delete': deleteEmployee(id); break;
+    case 'emp-restore': {
+      const e = empById(id); e.archived = false;
+      log('employee_edited', { employeeId: id, snapshot: e.shortName, details: `Сотрудник ${e.shortName} восстановлен из архива (каб. ${e.room})` });
+      commit(); toast('Сотрудник восстановлен'); break;
+    }
+    case 'stat-sort': {
+      const k = el.dataset.key;
+      if (statSort.key === k) statSort.dir = -statSort.dir; else statSort = { key: k, dir: k === 'name' || k === 'room' ? 1 : -1 };
+      renderStatResults(); break;
+    }
+    case 'months': ui.months = +el.dataset.v; saveUI(); renderStatResults(); break;
+    case 'stats-csv': exportStatsCSV(); break;
+    case 'hist-reset': Object.assign(histFilter, { action: '', emp: '', num: '', from: '', to: '' }); renderHistory(); break;
+    case 'hist-more': histLimit += 150; renderHistResults(); break;
+    case 'type-add': {
+      const t = { id: uid(), name: 'Новый тип', normDays: 5, active: true };
+      db.settings.requestTypes.push(t);
+      log('settings_changed', { details: 'Добавлен тип заявки «Новый тип» (5 р.д.)' });
+      commit();
+      const inp = $(`[data-change="type-name"][data-id="${t.id}"]`); if (inp) { inp.focus(); inp.select(); }
+      break;
+    }
+    case 'type-toggle': {
+      const t = typeById(id); t.active = !t.active;
+      log('settings_changed', { details: `Тип заявки «${t.name}» ${t.active ? 'снова доступен' : 'скрыт'}` });
+      commit(); break;
+    }
+    case 'type-delete': typeDelete(id); break;
+    case 'date-add': {
+      const kind = el.dataset.kind, inp = $(kind === 'holidays' ? '#hol-new' : '#extra-new'), v = inp.value;
+      if (!isISO(v)) { toast('Выберите дату'); inp.focus(); break; }
+      const arr = db.settings[kind], other = kind === 'holidays' ? 'extraWorkdays' : 'holidays';
+      if (arr.includes(v)) { toast('Эта дата уже в списке'); break; }
+      arr.push(v);
+      db.settings[other] = db.settings[other].filter(d => d !== v);
+      log('settings_changed', { details: `${kind === 'holidays' ? 'Добавлен праздничный день' : 'Добавлен перенесённый рабочий день'} ${fmtDate(v)}` });
+      commit(); toast('Дата добавлена'); break;
+    }
+    case 'date-del': {
+      const kind = el.dataset.kind, v = el.dataset.date;
+      db.settings[kind] = db.settings[kind].filter(d => d !== v);
+      log('settings_changed', { details: `${kind === 'holidays' ? 'Удалён праздничный день' : 'Удалён перенесённый рабочий день'} ${fmtDate(v)}` });
+      commit(); break;
+    }
+    case 'fill-rf': openFillRF(); break;
+    case 'save-numbering': {
+      const p = $('#set-prefix').value.trim(), n = parseInt($('#set-next').value, 10);
+      if (!(n >= 1)) { toast('Следующий номер должен быть не меньше 1'); break; }
+      if (p !== db.settings.numberPrefix || n !== db.settings.nextNumber) {
+        log('settings_changed', { details: `Нумерация: префикс «${p}», следующий номер ${n}` });
+        db.settings.numberPrefix = p; db.settings.nextNumber = n;
+        commit(); toast('Нумерация сохранена');
+      }
+      break;
+    }
+    case 'backup': exportBackup(); break;
+    case 'import': importFromCorrupt = false; $('#import-file').click(); break;
+    case 'import-corrupt': importFromCorrupt = true; $('#import-file').click(); break;
+    case 'reset-corrupt':
+      if (corruptRaw != null) downloadBlob(`zayavki-povrezhdennye-${todayISO()}.json`, corruptRaw, 'application/json');
+      try { localStorage.removeItem(KEY); } catch (e) { /* ничего */ }
+      corruptRaw = null; showWelcome(); break;
+    case 'hist-clean': histClean(); break;
+    case 'demo-remove': removeDemo(); break;
+    case 'wipe': wipeAll(); break;
+    case 'start-clean': db = defaultDB(); save(); startApp(); toast('База создана. Добавьте сотрудников'); if (ui.tab === 'deadlines') switchTab('employees'); break;
+    case 'start-demo': db = defaultDB(); calCache = null; loadDemo(); save(); ui.tab = 'deadlines'; saveUI(); startApp(); toast('Демо-данные загружены'); break;
+  }
+}
+async function typeDelete(id) {
+  const t = typeById(id);
+  if (db.requests.some(r => r.typeId === id)) {
+    t.active = false;
+    log('settings_changed', { details: `Тип заявки «${t.name}» скрыт (используется в заявках)` });
+    commit(); toast('Тип используется в заявках, поэтому он скрыт, а не удалён'); return;
+  }
+  if (!await confirmDialog({ title: 'Удаление типа', text: `Удалить тип «${esc(t.name)}»?`, ok: 'Удалить', danger: true })) return;
+  db.settings.requestTypes = db.settings.requestTypes.filter(x => x.id !== id);
+  log('settings_changed', { details: `Удалён тип заявки «${t.name}»` });
+  commit();
+}
+async function histClean() {
+  const v = $('#hist-clean').value;
+  if (!isISO(v)) { toast('Выберите дату'); return; }
+  const n = db.history.filter(h => toISO(new Date(h.timestamp)) < v).length;
+  if (!n) { toast('Записей старше этой даты нет'); return; }
+  if (!await confirmDialog({ title: 'Очистка истории', text: `Удалить ${n} ${plural(n, ['запись', 'записи', 'записей'])} истории старше ${fmtDate(v)}? Действие необратимо.`, ok: 'Удалить записи', danger: true })) return;
+  db.history = db.history.filter(h => toISO(new Date(h.timestamp)) >= v);
+  log('settings_changed', { details: `Очищена история старше ${fmtDate(v)} (${n} ${plural(n, ['запись', 'записи', 'записей'])})` });
+  commit(); toast('История очищена');
+}
+
+// Делегирование кликов
+document.addEventListener('click', e => {
+  const a = e.target.closest('[data-action]');
+  if (a && !a.disabled) { e.preventDefault(); handleAction(a.dataset.action, a); return; }
+  const o = e.target.closest('[data-open]');
+  if (o && !e.target.closest('button,a,input,select')) openRequestCard(o.dataset.open);
+});
+document.addEventListener('change', e => {
+  const el = e.target.closest('[data-change]');
+  if (el) handleChange(el.dataset.change, el);
+});
+$('#import-file').addEventListener('change', e => {
+  const f = e.target.files[0];
+  if (f) {
+    if (!db) db = null;
+    importBackup(f, importFromCorrupt || !db);
+  }
+  e.target.value = '';
+});
+// Клавиатура
+document.addEventListener('keydown', e => {
+  const top = last(modalStack);
+  if (e.key === 'Escape' && top) { e.preventDefault(); top.close(); return; }
+  if (top) {
+    if (e.key === 'Enter' && top.onSubmit && !['TEXTAREA', 'BUTTON', 'A'].includes(e.target.tagName) && !e.isComposing) { e.preventDefault(); top.onSubmit(); }
+    return;
+  }
+  if (e.key === 'Enter' && e.target.matches && e.target.matches('[data-open]')) { openRequestCard(e.target.dataset.open); return; }
+  if (!db || !$('#welcome').classList.contains('hidden')) return;
+  if (e.ctrlKey || e.metaKey || e.altKey) return;
+  if (['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName) || e.target.isContentEditable) return;
+  if (e.code === 'KeyN') { e.preventDefault(); openRequestForm(); return; }
+  if (e.key === '/' || e.code === 'Slash') {
+    e.preventDefault();
+    if (ui.tab !== 'requests') switchTab('requests');
+    const q = $('#f-q'); if (q) q.focus();
+    return;
+  }
+  const m = /^(?:Digit|Numpad)([1-6])$/.exec(e.code);
+  if (m) { e.preventDefault(); switchTab(TABS[+m[1] - 1][0]); }
+});
+// Синхронизация между вкладками
+window.addEventListener('storage', e => {
+  if (e.key !== KEY) return;
+  if (e.newValue == null) { db = null; showWelcome(); return; }
+  try {
+    const d = JSON.parse(e.newValue);
+    if (validate(d)) { db = migrate(d); calCache = null; $('#welcome').classList.add('hidden'); renderAll(); toast('Данные обновлены из другой вкладки'); }
+  } catch (err) { /* игнорируем */ }
+});
+window.addEventListener('resize', updateTopbarHeight);
+// Пересчёт «на сегодня» каждые 10 минут
+setInterval(() => { if (db && !modalStack.length) renderAll(); else if (db) renderHeader(); }, 10 * 60 * 1000);
+
+/* =========================================================
+   16. ЗАПУСК
+   ========================================================= */
+(function init() {
+  const st = load();
+  if (st === 'ok') startApp();
+  else if (st === 'corrupt') showCorrupt();
+  else {
+    showWelcome();
+    if (st === 'unavailable') setTimeout(showStorageWarning, 0);
+  }
+})();
+</script>
+</body>
+</html>
